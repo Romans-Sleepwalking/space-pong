@@ -1,47 +1,28 @@
+/* header file */
+#include "stuffchiks_lib.h"
+/* PMB allowed libraries */
 #include <stdio.h>
 #include <stdlib.h>
 
 
 int main(int argc, char** argv) {
     int i;
-    int it;
-    char* param;
-    char num_str[8];
     /* Client connection info */
-    char client_address[64];
+    char* client_address;
     int client_port;
 
     printf("   Running space-pong client...\n");
     /* Reads client connection info */
     for (i=0; i<argc; i++){
-        param = argv[i];
         /* Reads address */
-        if (param[0] == '-' && param[1] == 'a' && param[2] == '='){
-            /* Fills the address char-by-char */
-            it = 3;
-            while (1){
-                client_address[it-3] = param[it];
-                if (param[it] == '\0'){
-                    break;
-                } else {
-                    it++;
-                }
-            }
+        if (argv[i][0] == '-' && argv[i][1] == 'a' && argv[i][2] == '='){
+            /* Calls parameter reading function from library */
+            client_address = read_parameter_value(argv[i]);
         }
-        /* Reads port */
-        else if (param[0] == '-' && param[1] == 'p' && param[2] == '='){
-            /* Fills the port char-by-char */
-            it = 3;
-            while (1){
-                num_str[it-3] = param[it];
-                if (param[it] == '\0'){
-                    break;
-                } else {
-                    it++;
-                }
-            }
-            /* Translates the port string to integer */
-            client_port = atoi(num_str);
+            /* Reads port */
+        else if (argv[i][0] == '-' && argv[i][1] == 'p' && argv[i][2] == '='){
+            /* Calls parameter reading function from library and translates the substring to integer */
+            client_port = atoi(read_parameter_value(argv[i]));
         }
     }
     printf("   Client connection info: address=\"%s\"; port=%d;\n", client_address, client_port);
