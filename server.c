@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
     char* server_hostname;
     int server_port;
 
-    printf("   Running space-pong server...\n");
+    printf("\tRunning space-pong server...\n");
     /* Reads server connection info */
     for (i=0; i<argc; i++){
         /* Reads hostname */
@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
             server_port = atoi(read_parameter_value(argv[i]));
         }
     }
-    printf("   Server connection info: hostname=\"%s\"; port=%d;\n", server_hostname, server_port);
+    printf("\tServer connection info: hostname=\"%s\"; port=%d;\n", server_hostname, server_port);
 
     /* TODO */
 

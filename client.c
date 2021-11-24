@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
     char* client_address;
     int client_port;
 
-    printf("   Running space-pong client...\n");
+    printf("\tRunning space-pong client...\n");
     /* Reads client connection info */
     for (i=0; i<argc; i++){
         /* Reads address */
@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
             client_port = atoi(read_parameter_value(argv[i]));
         }
     }
-    printf("   Client connection info: address=\"%s\"; port=%d;\n", client_address, client_port);
+    printf("\tClient connection info: address=\"%s\"; port=%d;\n", client_address, client_port);
 
     return 0;
 }
