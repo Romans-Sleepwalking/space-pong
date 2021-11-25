@@ -33,6 +33,32 @@ void process_client(int id, int socket);
 int get_port(int, char**);
 
 int main(int argc, char** argv){
+
+  /* MEMORY BLOCK /////////////////////////////////////////////////*/
+     int requested_mem_size = SHARED_MEMORY_SIZE;
+    /*ja vajadzēs vairāk atmiņu packetos vai gamestate tad varēs palielināt memory size no 1024 */
+    int* memory_block = malloc(requested_mem_size * sizeof(int));
+    /*pagaidam game state buus 512 baitus liels memory */
+    int* game_state = (int*)(memory_block +sizeof(int)*requested_mem_size/2);
+    
+    /* memory block struktūra: 
+    first_client input(128 baiti) ->  second_client input(128 baiti) -> third_client input(128 baiti) -> fourth_client input(128 baiti) -> gamestate_client input(512 baiti)
+    /*pagaidam katram clientam bus 128 baiti */
+    int* first_client_input = (int*)memory_block;
+    int* second_client_input = (int*)(first_client_input +sizeof(int)*requested_mem_size/8);
+    int* third_client_input = (int*)(second_client_input +sizeof(int)*requested_mem_size/8);
+    int* fourth_client_input = (int*)(third_client_input +sizeof(int)*requested_mem_size/8);
+
+    /* Katram clientam inputam pirmais baits noradis 0 vai 1 , 0 nozime ka packetā var rakstīt, 1 nozīmēs ka packetā nevar rakstīt, jo to sākumā ir jānolasa gameupdeitotajam */
+     *first_client_input = 0;
+     *second_client_input = 0;
+     *third_client_input = 0;
+     *fourth_client_input = 0;
+      /* talak lai atrastu packeta info vajadzes first_client_packet = (*int)(first_client +sizeof(int) ) 
+      vai ari vares izmantot client id un tad vares accessot katru:  client_packet = (*int)(memory_block +sizeof(int)*requested_mem_size/8*id)
+      */
+
+   /* ////////////////////////////////////// */
    int port = get_port(argc, argv);
    if(port == -1){
       port = 12345;
@@ -57,6 +83,8 @@ int main(int argc, char** argv){
 void get_shared_memory(){
     shared_memory = mmap(NULL,SHARED_MEMORY_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED|MAP_ANONYMOUS,-1,0);
     client_count = (int*) shared_memory;
+    int single_client_memory = SHARED_MEMORY_SIZE/4;
+
     total_bytes_used = (int*)(shared_memory +sizeof(int));
     shared_data = (int*)(shared_memory +sizeof(int) + sizeof(int));
      /*shared_data = (int*)(shared_memory +sizeof(int)); */
@@ -132,7 +160,7 @@ void start_network(int port){
         else close(client_socket);
     }
 }
-
+/*This is where we have to send and process packets */
 void process_client(int id,int socket){
     int i=0;
     char in[1];
