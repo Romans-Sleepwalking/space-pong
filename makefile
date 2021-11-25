@@ -1,12 +1,14 @@
 all: test_server
 
 build_lib:
-	gcc -c stuffchiks_lib.c -Wall -Wextra -fno-common -std=c90 -o stuffchiks_lib.o
+	gcc -c connection_lib.c -Wall -Wextra -fno-common -std=c90 -o connection_lib.o
+	gcc -c game_lib.c -Wall -Wextra -fno-common -std=c90 -o game_lib.o
 clean_lib:
-	rm stuffchiks_lib.o
+	rm connection_lib.o
+	rm game_lib.o
 
 build_server: build_lib
-	gcc server.c stuffchiks_lib.o -std=c90 -Wall -Wextra -fno-common -o server.o
+	gcc server.c connection_lib.o game_lib.o -std=c90 -Wall -Wextra -fno-common -o server.o
 run_server:
 	@echo ===
 	@echo ====== TEST SERVER ======
@@ -18,7 +20,7 @@ clean_server: clean_lib
 test_server: build_server run_server clean_server
 
 build_client: build_lib
-	gcc client.c stuffchiks_lib.o -std=c90 -Wall -Wextra -fno-common -o client.o
+	gcc client.c connection_lib.o -std=c90 -Wall -Wextra -fno-common -o client.o
 run_client:
 	@echo ===
 	@echo ====== TEST CLIENT ======
