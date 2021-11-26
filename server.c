@@ -1,6 +1,7 @@
 /* Custom space-pong library's header file */
 #include "pong_lib.h"
 /* PBM765 allowed libraries */
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -53,7 +54,7 @@ void process_client(int id,int socket){
         /*    if(in[0]>-1 && in[0]<126 && in[0] != 10 && in[0] != 3){*/
         if ((in[0]>47 && in[0]<58) || (in[0]>64 && in[0]<126) || in[0] == 0 || in[0] == 10){
             /* ... */
-            shared_data[MAX_CLIENTS + id] += 1;
+            shared_data[DEFAULT_MAX_CLIENTS + id] += 1;
             /* ... */
             if (in[0] == 10){
                 printf("Character received:  New line\n");
@@ -61,21 +62,21 @@ void process_client(int id,int socket){
                 printf("Character received: %c \n", in[0]);
             }
             /* ... */
-            for (i = 0; i < shared_data[MAX_CLIENTS + id]; i++){
+            for (i = 0; i < shared_data[DEFAULT_MAX_CLIENTS + id]; i++){
                 sprintf(out,"%c",in[0]);
                 write(socket,out,1);
             }
             /* ... */
             k = (int)in[0]-48;
             shared_data[id] = k;
-            /*sprintf(out,"CLIENT %d Total bytes used by client: %d\n",id,shared_data[MAX_CLIENTS+id]);*/
-            printf("CLIENT %d total bytes used %d\n", id, shared_data[MAX_CLIENTS + id]);
+            /*sprintf(out,"CLIENT %d Total bytes used by client: %d\n",id,shared_data[DEFAULT_MAX_CLIENTS+id]);*/
+            printf("CLIENT %d total bytes used %d\n", id, shared_data[DEFAULT_MAX_CLIENTS + id]);
         }
     }
 }
 
 /* Starts network which polls new socket connections */
-void launch_network(int port){
+int start_polling(char* hostname, int port){
     /* Server info */
     int server_socket;
     struct sockaddr_in server_adress;
@@ -101,7 +102,7 @@ void launch_network(int port){
     }
     /* Assigns remote socket values */
     server_adress.sin_family = AF_INET;
-    server_adress.sin_addr.s_addr = INADDR_ANY;
+    server_adress.sin_addr.s_addr = hostname;
     server_adress.sin_port = htons(port);
 
     /* Binds the socket to accept incoming connections */
@@ -182,7 +183,7 @@ int main(int argc, char** argv){
 
     /* ========== READS SERVER'S CONNECTION INFO ========== */
 
-    printf("\tReading connection parameters... ");
+    printf("\tReading connection parameters...");
     for (i=0; i<argc; i++){
         /* Reads hostname */
         if (argv[i][0] == '-' && argv[i][1] == 'h' && argv[i][2] == '='){
@@ -195,11 +196,11 @@ int main(int argc, char** argv){
             server_port = atoi(read_parameter_value(argv[i]));
         }
     }
-    printf("hostname=\"%s\", port=%d\n", server_hostname, server_port);
+    printf("hostname=\"%s\"; port=%d\n", server_hostname, server_port);
 
     /* ========== ALLOCATES MEMORY FOR SERVER'S NEEDS ========== */
 
-    int requested_mem_size = SHARED_MEMORY_SIZE;
+    int requested_mem_size = DEFAULT_SHARED_MEMORY_SIZE;
     /*ja vajadzēs vairāk atmiņu packetos vai gamestate tad varēs palielināt memory size no 1024 */
     int* memory_block = malloc(requested_mem_size * sizeof(int));
     /*pagaidam game state buus 512 baitus liels memory */
@@ -235,8 +236,8 @@ int main(int argc, char** argv){
         launch_game(game_state_partition);
     } else {
         /* Parent process calls the server polling function */
-        launch_network(server_port);
+        start_polling(server_hostname, server_port);
     }
-    printf("Bytes received: %d", *total_bytes_used);
+    printf("\tBytes received: %d\n", *total_bytes_used);
     return 0;
 }

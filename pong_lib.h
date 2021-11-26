@@ -6,7 +6,7 @@
     /* Counts string length */
     int str_length(char *string);
     /* Copies string content inside the another string by pointers */
-    void str_copy(char* source, char* destination)
+    void str_copy(char* source, char* destination);
     /* Tries to find a substring */
     int str_find(char* needle, char* haystack);
 

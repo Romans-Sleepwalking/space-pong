@@ -10,11 +10,11 @@
  */
 
 /* Equivalent to the main function for the game session */
-void launch_game(int* game_state){
-    printf("Launching the game... ");
+int launch_game(int* game_state){
     /* Timings */
-    int seconds = 0;
+    float seconds = 0;
     float refresh_rate = DEFAULT_REFRESH_RATE;
+    printf("\tPreparing the game (%1.1f seconds refresh rate)... ", refresh_rate);
 
     /* ========== LOADING GAME MEMORY ========== */
 
@@ -67,9 +67,11 @@ void launch_game(int* game_state){
 
     /* Starts games infinite loop */
     printf("Game Launched!\n");
-    while(seconds != 60){
-        printf("Game Timer: %d seconds game time, %f seconds refresh rate.\n", seconds, refresh_rate);
-        seconds += 10;
+    while (seconds < 1.0){
+        printf("\t\tTimer: %1.1f seconds... nothing happened\n", seconds);
+        seconds += refresh_rate;
         /* sleep(refresh_rate); */
     }
+    printf("\tGame Over!\n");
+    return 0;
 }

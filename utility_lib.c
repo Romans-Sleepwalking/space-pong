@@ -17,9 +17,7 @@ char* read_parameter_value(char* string) {
         substring[i-3] = string[i];
         if (string[i] == '\0'){
             break;
-        } else {
-            i++;
-        }
+        } else i++;
     }
     return substring;
 }
