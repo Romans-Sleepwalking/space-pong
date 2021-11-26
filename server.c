@@ -10,8 +10,8 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/mman.h>
-/* Global default values */
-#define DEFAULT_MAX_CLIENTS 10
+/* Global default constants */
+#define DEFAULT_MAX_CLIENTS 4
 #define DEFAULT_HOSTNAME "127.0.0.1"
 #define DEFAULT_PORT 12348
 #define DEFAULT_SHARED_MEMORY_SIZE 1024
@@ -23,107 +23,150 @@ int* total_bytes_used = 0;
 
 /* Gets shared memory */
 void get_shared_memory(){
-    shared_memory = mmap(NULL,SHARED_MEMORY_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED|MAP_ANONYMOUS,-1,0);
+    int single_client_memory;
+    /* ... */
+    shared_memory = mmap(NULL, DEFAULT_SHARED_MEMORY_SIZE,PROT_READ|PROT_WRITE,MAP_SHARED|MAP_ANONYMOUS,-1,0);
+    /* ... */
     client_count = (int*) shared_memory;
-    int single_client_memory = SHARED_MEMORY_SIZE/4;
-
+    /* ... */
+    single_client_memory = DEFAULT_SHARED_MEMORY_SIZE / 4;
+    /* ... */
     total_bytes_used = (int*)(shared_memory +sizeof(int));
     shared_data = (int*)(shared_memory +sizeof(int) + sizeof(int));
-     /*shared_data = (int*)(shared_memory +sizeof(int)); */
+    /* shared_data = (int*)(shared_memory +sizeof(int)); */
 }
 
-/* Starts network */
-void start_network(int port){
-    int main_socket;
-    struct sockaddr_in server_adress;
+/* Sends and process client's packets */
+void process_client(int id,int socket){
+    int i;
+    /* ... */
+    char in[1];
+    char out[100];
+    /* ... */
+    int k = 0;
 
+    printf("Processing client id=%d, socket=%d\n", id, socket);
+    printf("CLIENT count %d\n", *client_count);
+    /* ... */
+    while(1){
+        read(socket,in,1);
+        /*    if(in[0]>-1 && in[0]<126 && in[0] != 10 && in[0] != 3){*/
+        if ((in[0]>47 && in[0]<58) || (in[0]>64 && in[0]<126) || in[0] == 0 || in[0] == 10){
+            /* ... */
+            shared_data[MAX_CLIENTS + id] += 1;
+            /* ... */
+            if (in[0] == 10){
+                printf("Character received:  New line\n");
+            } else {
+                printf("Character received: %c \n", in[0]);
+            }
+            /* ... */
+            for (i = 0; i < shared_data[MAX_CLIENTS + id]; i++){
+                sprintf(out,"%c",in[0]);
+                write(socket,out,1);
+            }
+            /* ... */
+            k = (int)in[0]-48;
+            shared_data[id] = k;
+            /*sprintf(out,"CLIENT %d Total bytes used by client: %d\n",id,shared_data[MAX_CLIENTS+id]);*/
+            printf("CLIENT %d total bytes used %d\n", id, shared_data[MAX_CLIENTS + id]);
+        }
+    }
+}
+
+/* Starts network which polls new socket connections */
+void launch_network(int port){
+    /* Server info */
+    int server_socket;
+    struct sockaddr_in server_adress;
+    /* For every new connection client's info  */
     int client_socket;
     struct sockaddr_in client_address;
-    int client_adress_size = sizeof(client_address);
+    int client_address_size = sizeof(client_address);
+    int new_client_id;
+    /* For every new connection process forking */
+    int is_child_proc;
+    int is_grandchild_proc;
 
-    main_socket = socket(AF_INET, SOCK_STREAM, 0);
+    /* ========== CREATES SOCKET OBJECT ========== */
 
-    if(main_socket<0) {
-        printf("Error opening main server socket!\n");
-        exit(1);
+    /* Creates a new socket */
+    if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == 0){
+        printf("Success: server socket created!\n");
     }
-
-    printf("Main socket created\n");
-
+    /* If creation failed, throws an error  */
+    else {
+        printf("Error: server socket creation failed!\n");
+        return -1;
+    }
+    /* Assigns remote socket values */
     server_adress.sin_family = AF_INET;
     server_adress.sin_addr.s_addr = INADDR_ANY;
     server_adress.sin_port = htons(port);
 
-    if(bind(main_socket, (struct sockaddr*) &server_adress, sizeof(server_adress))<0) {
-        printf("Error binding the main server socket!\n");
-        exit(1);
+    /* Binds the socket to accept incoming connections */
+    if ((bind(server_socket, (struct sockaddr*) &server_adress, sizeof(server_adress))) == 0){
+        printf("Success: server socket binded!\n");
     }
-    printf("Server socket binded\n");
-
-    if(listen(main_socket,MAX_CLIENTS)<0) {
-        printf("Error listening to socket");
-        exit(1);
+    /* If binding failed, throws an error  */
+    else {
+        printf("Error: server socket binding failed!\n");
+        return -1;
     }
-    printf("Main socket is listening\n");
 
+    /* ========== STARTS SOCKET LISTENING ========== */
+
+    /* Sets the socket to listen for incoming connections */
+    if ((listen(server_socket, DEFAULT_MAX_CLIENTS) < 0) == 0){
+        printf("Success: server socket is listening!\n");
+    }
+    /* If binding failed, throws an error  */
+    else {
+        printf("Error: server socket setting to listening failed!\n");
+        return -1;
+    }
+    /* Infinitely loops server to listen and react to new clients */
     while(1) {
-        int new_client_id = 0;
-        int cpid = 0;
-        client_socket = accept(main_socket, (struct sockaddr*)&client_address,&client_adress_size);
-        if(client_socket<0){
-            printf("Error accepting client connection! ERRNO=%d\n",errno);
+        /* Refreshes parameters */
+        client_socket = 0;
+        new_client_id = 0;
+        is_child_proc = 0;
+        is_grandchild_proc = 0;
+        /* Accepts a new client connection */
+        if ((client_socket = accept(server_socket, (struct sockaddr*)&client_address,&client_address_size)) >= 0){
+            /* Saves the client's info */
+            new_client_id = *client_count;
+            /* Records stats */
+            *client_count += 1;
+            /* Forks child process */
+            is_child_proc = fork();
+            /* Child process closes the client's socket */
+            if (is_child_proc){
+                close(client_socket);
+            }
+            /* Parent process... */
+            else {
+                /* Closes server socket */
+                close(server_socket);
+                /* Forks grandchild process */
+                is_grandchild_proc = fork();
+                /* TODO: what does the grandchild process? */
+                if (is_grandchild_proc){
+                    wait(NULL);
+                    printf("Succesfully orphaned client %d\n", new_client_id);
+                    exit(0);
+                }
+                /* Child process calls func process_client()  */
+                else {
+                    process_client(new_client_id,client_socket);
+                    exit(0);
+                }
+            }
+        }
+        /* If error during accepting new client connection occured, throws an error and continues */
+        else {
+            printf("Error: accepting client connection failed! ERRNO=%d\n",errno);
             continue;
-        }
-        new_client_id = *client_count;
-        *client_count+=1;
-        cpid = fork();
-
-        if(cpid == 0){
-            close(main_socket);
-            cpid = fork();
-            if(cpid == 0){
-                process_client(new_client_id,client_socket);
-                exit(0);
-            }
-            else{
-                wait(NULL);
-                printf("Succesfully orphaned client %d\n",new_client_id);
-                exit(0);
-            }
-        }
-        else close(client_socket);
-    }
-}
-
-/* This is where we have to send and process packets */
-void process_client(int id,int socket){
-    int i=0;
-    char in[1];
-    char out[100];
-    
-    printf("Processing client id=%d, socket=%d\n",id,socket);
-    printf("CLIENT count %d\n",*client_count);
- 
-    while(1){
-        read(socket,in,1);
-    /*    if(in[0]>-1 && in[0]<126 && in[0] != 10 && in[0] != 3){*/
-        if((in[0]>47 && in[0]<58) || (in[0]>64 && in[0]<126) || in[0] == 0 || in[0] == 10){
-         shared_data[MAX_CLIENTS+id] += 1;
-         if(in[0] == 10){
-           printf("Character received:  New line\n");
-         }else{
-           printf("Character received: %c \n", in[0]);
-         }
-       
-          int m;
-          for(m =0; m<shared_data[MAX_CLIENTS+id]; m++){
-            sprintf(out,"%c",in[0]);
-            write(socket,out,1);
-          }
-            i = (int)in[0]-48;
-            shared_data[id] = i;
-           /*sprintf(out,"CLIENT %d Total bytes used by client: %d\n",id,shared_data[MAX_CLIENTS+id]);*/
-          printf("CLIENT %d total bytes used %d\n",id,shared_data[MAX_CLIENTS+id]);
         }
     }
 }
@@ -154,18 +197,18 @@ int main(int argc, char** argv){
     }
     printf("hostname=\"%s\", port=%d\n", server_hostname, server_port);
 
-
     /* ========== ALLOCATES MEMORY FOR SERVER'S NEEDS ========== */
 
     int requested_mem_size = SHARED_MEMORY_SIZE;
     /*ja vajadzēs vairāk atmiņu packetos vai gamestate tad varēs palielināt memory size no 1024 */
     int* memory_block = malloc(requested_mem_size * sizeof(int));
     /*pagaidam game state buus 512 baitus liels memory */
-    int* game_state = (int*)(memory_block +sizeof(int)*requested_mem_size/2);
+    int* game_state_partition = (int*)(memory_block +sizeof(int)*requested_mem_size/2);
 
     /* memory block struktūra:
     first_client input(128 baiti) ->  second_client input(128 baiti) -> third_client input(128 baiti) -> fourth_client input(128 baiti) -> gamestate_client input(512 baiti)
-    /*pagaidam katram clientam bus 128 baiti */
+     */
+    /* pagaidam katram clientam bus 128 baiti */
     int* first_client_input = (int*)memory_block;
     int* second_client_input = (int*)(first_client_input +sizeof(int)*requested_mem_size/8);
     int* third_client_input = (int*)(second_client_input +sizeof(int)*requested_mem_size/8);
@@ -183,16 +226,16 @@ int main(int argc, char** argv){
 
     /* ========== RUNS THE SERVER ========== */
 
-    printf("\tRunning space-pong server... ");
+    printf("\tRunning space-pong server...\n");
 
     /* Forks child process */
     is_child_proc = fork();
     /* If child process, starts the game */
     if (is_child_proc){
-        gameloop();
+        launch_game(game_state_partition);
     } else {
-        /* Parent process starts the server */
-        start_network(server_port);
+        /* Parent process calls the server polling function */
+        launch_network(server_port);
     }
     printf("Bytes received: %d", *total_bytes_used);
     return 0;

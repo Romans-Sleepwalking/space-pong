@@ -11,6 +11,6 @@
     int str_find(char* needle, char* haystack);
 
     /* Equivalent to the main function for the game session */
-    void gameloop();
+    void launch_game(int* game_state);
 
 #endif

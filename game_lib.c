@@ -1,5 +1,7 @@
 /* PBM765 allowed library */
 #include<stdio.h>
+/* Global default constants */
+#define DEFAULT_REFRESH_RATE 0.2
 
 /*
  * Space-pong library segment that
@@ -8,24 +10,19 @@
  */
 
 /* Equivalent to the main function for the game session */
-void gameloop(){
-    printf("Starting gameloop! Runs forever.\n");
+void launch_game(int* game_state){
+    printf("Launching the game... ");
+    /* Timings */
     int seconds = 0;
-    int refresh_rate = 3;
-    while(1){
-        printf("Game Timer: %d seconds.\n", seconds);
-        seconds += 3;
-        sleep(refresh_rate);
-    }
-}
+    float refresh_rate = DEFAULT_REFRESH_RATE;
 
-void game_structure(){
+    /* ========== LOADING GAME MEMORY ========== */
+
     int* score_team_1 = game_state;
     int* score_team_2 = (int*)(score_team_1 +sizeof(int));
     /*game type is 1 or 2 (1 - 1v1, 2 - 2v2) */
     int* game_type = (int*)(score_team_2 +sizeof(int));
     int* ready_player_count =  (int*)(game_type + sizeof(int));
-
 
     /*ball info */
     float* ball_x = (float*)(ready_player_count + sizeof(int));
@@ -63,4 +60,16 @@ void game_structure(){
     int* player4_height = (int*)(player4_y +sizeof(float));
     int* player4_width = (int*)(player4_height +sizeof(int));
     int* player4_color = (int*)(player4_width +sizeof(int));
+
+    printf("Memory loaded... ");
+
+    /* ========== LOOPS THE GAME PROCESS ========== */
+
+    /* Starts games infinite loop */
+    printf("Game Launched!\n");
+    while(seconds != 60){
+        printf("Game Timer: %d seconds game time, %f seconds refresh rate.\n", seconds, refresh_rate);
+        seconds += 10;
+        /* sleep(refresh_rate); */
+    }
 }
