@@ -50,17 +50,17 @@ int main(int argc, char** argv){
 
     /* ========== CREATES SOCKET OBJECT ========== */
 
-    /* shi rindina lkm citadak jo ir cipari nevis localhost */
-    server_name = gethostbyname(client_address);
     /* Creates a new socket */
-    if ((client_socket = socket(AF_INET, SOCK_STREAM, 0)) == 0){
-        printf("Success: client socket created!\n");
+    if ((client_socket = socket(AF_INET, SOCK_STREAM, 0)) >= 0){
+        printf("\tClient socket created... ");
     } else {
         /* If failed, throws an error  */
         printf("Error: client socket failed!\n");
         return -1;
     }
     /* Assigns remote socket values */
+    /* shi rindina lkm citadak jo ir cipari nevis localhost */
+    server_name = gethostbyname(client_address);
     remote_address.sin_family = AF_INET;
     remote_address.sin_port = htons(client_port);
 
@@ -73,14 +73,14 @@ int main(int argc, char** argv){
         inet_pton(AF_INET, server_name, &remote_address.sin_addr);
         /* Connects to the server */
         if (connect(client_socket, (struct sockadrr *) &remote_address, sizeof(remote_address)) == 0) {
-            printf("Connected\n");
+            printf("Connected!\n");
             /* Infinite loop sends client's Terminal messages if inputted */
             while (1){
                 scanf("%s", inputs);
                 send(client_socket, inputs, strlen(inputs), 0);
             }
         } else {
-            printf("Error connecting\n");
+            printf("Error: connection failure!\n");
             return -1;
         }
     }

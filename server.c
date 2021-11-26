@@ -11,10 +11,11 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <netdb.h>
 /* Global default constants */
 #define DEFAULT_MAX_CLIENTS 4
 #define DEFAULT_HOSTNAME "127.0.0.1"
-#define DEFAULT_PORT 12348
+#define DEFAULT_PORT 12369
 #define DEFAULT_SHARED_MEMORY_SIZE 1024
 /* Global variables */
 char* shared_memory = NULL;
@@ -79,35 +80,38 @@ void process_client(int id,int socket){
 int start_polling(char* hostname, int port){
     /* Server info */
     int server_socket;
-    struct sockaddr_in server_adress;
+    struct sockaddr_in server_address;
     /* For every new connection client's info  */
     int client_socket;
     struct sockaddr_in client_address;
     int client_address_size = sizeof(client_address);
     int new_client_id;
     /* For every new connection process forking */
+    int is_parent_proc;
     int is_child_proc;
-    int is_grandchild_proc;
 
     /* ========== CREATES SOCKET OBJECT ========== */
 
+
     /* Creates a new socket */
-    if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == 0){
-        printf("Success: server socket created!\n");
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_socket >= 0){
+        printf("\tServer socket created... ");
     }
     /* If creation failed, throws an error  */
     else {
         printf("Error: server socket creation failed!\n");
         return -1;
     }
+
     /* Assigns remote socket values */
-    server_adress.sin_family = AF_INET;
-    server_adress.sin_addr.s_addr = hostname;
-    server_adress.sin_port = htons(port);
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = INADDR_ANY;
+    server_address.sin_port = htons(port);
 
     /* Binds the socket to accept incoming connections */
-    if ((bind(server_socket, (struct sockaddr*) &server_adress, sizeof(server_adress))) == 0){
-        printf("Success: server socket binded!\n");
+    if (bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address)) >= 0){
+        printf("Binded... ");
     }
     /* If binding failed, throws an error  */
     else {
@@ -118,8 +122,8 @@ int start_polling(char* hostname, int port){
     /* ========== STARTS SOCKET LISTENING ========== */
 
     /* Sets the socket to listen for incoming connections */
-    if ((listen(server_socket, DEFAULT_MAX_CLIENTS) < 0) == 0){
-        printf("Success: server socket is listening!\n");
+    if ((listen(server_socket, DEFAULT_MAX_CLIENTS)) >= 0){
+        printf("Is listening!\n");
     }
     /* If binding failed, throws an error  */
     else {
@@ -131,18 +135,18 @@ int start_polling(char* hostname, int port){
         /* Refreshes parameters */
         client_socket = 0;
         new_client_id = 0;
+        is_parent_proc = 0;
         is_child_proc = 0;
-        is_grandchild_proc = 0;
         /* Accepts a new client connection */
-        if ((client_socket = accept(server_socket, (struct sockaddr*)&client_address,&client_address_size)) >= 0){
+        if ((client_socket = accept(server_socket, (struct sockaddr*)&client_address, &client_address_size)) >= 0){
             /* Saves the client's info */
             new_client_id = *client_count;
             /* Records stats */
             *client_count += 1;
             /* Forks child process */
-            is_child_proc = fork();
+            is_parent_proc = fork();
             /* Child process closes the client's socket */
-            if (is_child_proc){
+            if (!is_parent_proc){
                 close(client_socket);
             }
             /* Parent process... */
@@ -150,9 +154,9 @@ int start_polling(char* hostname, int port){
                 /* Closes server socket */
                 close(server_socket);
                 /* Forks grandchild process */
-                is_grandchild_proc = fork();
+                is_child_proc = fork();
                 /* TODO: what does the grandchild process? */
-                if (is_grandchild_proc){
+                if (!is_child_proc){
                     wait(NULL);
                     printf("Succesfully orphaned client %d\n", new_client_id);
                     exit(0);
@@ -179,7 +183,7 @@ int main(int argc, char** argv){
     char* server_hostname = DEFAULT_HOSTNAME;
     int server_port = DEFAULT_PORT;
     /* Process forking status */
-    int is_child_proc = 0;
+    int is_parent_proc = 0;
 
     /* ========== READS SERVER'S CONNECTION INFO ========== */
 
@@ -230,12 +234,12 @@ int main(int argc, char** argv){
     printf("\tRunning space-pong server...\n");
 
     /* Forks child process */
-    is_child_proc = fork();
-    /* If child process, starts the game */
-    if (is_child_proc){
+    is_parent_proc = fork();
+    /* Parent process starts the game */
+    if (is_parent_proc){
         launch_game(game_state_partition);
     } else {
-        /* Parent process calls the server polling function */
+        /* Child process calls the start server polling function */
         start_polling(server_hostname, server_port);
     }
     printf("\tBytes received: %d\n", *total_bytes_used);

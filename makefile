@@ -12,7 +12,7 @@ build_server: build_lib
 run_server:
 	@echo ===
 	@echo ====== TEST SERVER ======
-	./server.o server -h=127.0.0.1 -p=12345
+	./server.o server -p=12370
 	@echo ====== END TEST SERVER ======
 	@echo ===
 clean_server: clean_lib
@@ -24,7 +24,7 @@ build_client: build_lib
 run_client:
 	@echo ===
 	@echo ====== TEST CLIENT ======
-	./client.o client -a=127.0.0.1 -p=12369
+	./client.o client -a=127.0.0.1 -p=12370
 	@echo ====== END TEST CLIENT ======
 	@echo ===
 clean_client: clean_lib

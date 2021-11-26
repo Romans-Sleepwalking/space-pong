@@ -1,7 +1,8 @@
 /* PBM765 allowed library */
 #include<stdio.h>
+#include <time.h>
 /* Global default constants */
-#define DEFAULT_REFRESH_RATE 0.2
+#define DEFAULT_REFRESH_RATE 3
 
 /*
  * Space-pong library segment that
@@ -12,9 +13,10 @@
 /* Equivalent to the main function for the game session */
 int launch_game(int* game_state){
     /* Timings */
-    float seconds = 0;
+    float seconds = 5;
     float refresh_rate = DEFAULT_REFRESH_RATE;
-    printf("\tPreparing the game (%1.1f seconds refresh rate)... ", refresh_rate);
+    clock_t timer;
+    printf("\tPreparing the game with %1.1f seconds refresh rate... ", refresh_rate);
 
     /* ========== LOADING GAME MEMORY ========== */
 
@@ -67,10 +69,15 @@ int launch_game(int* game_state){
 
     /* Starts games infinite loop */
     printf("Game Launched!\n");
-    while (seconds < 1.0){
-        printf("\t\tTimer: %1.1f seconds... nothing happened\n", seconds);
-        seconds += refresh_rate;
-        /* sleep(refresh_rate); */
+    timer = clock();
+    while (1){
+        if ((((double)clock()-timer)/CLOCKS_PER_SEC) >= seconds){
+            printf("\t\tTimer: %1.1f seconds... nothing happened\n", seconds);
+            seconds += refresh_rate;
+        }
+        if (seconds > 60){
+            break;
+        }
     }
     printf("\tGame Over!\n");
     return 0;
