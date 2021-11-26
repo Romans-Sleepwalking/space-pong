@@ -3,14 +3,15 @@
 /* PBM765 allowed libraries */
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include<stdio.h>
-#include<string.h>
+#include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <netdb.h>
 #include <stdlib.h>
+#include <ncurses.h>
 /* Global default values */
 #define DEFAULT_HOSTNAME "127.0.0.1"
-#define DEFAULT_PORT 12345
+#define DEFAULT_PORT 12380
 
 
 int main(int argc, char** argv){
@@ -27,6 +28,8 @@ int main(int argc, char** argv){
     struct sockaddr_in remote_address;
     /* Interaction */
     char inputs[100];
+    int ch;
+    /* Messages */
     char server_reply[6000];
 
     /* ========== READS CLIENT'S CONNECTION INFO ========== */
@@ -58,11 +61,14 @@ int main(int argc, char** argv){
         printf("Error: client socket failed!\n");
         return -1;
     }
-    /* Assigns remote socket values */
+    /* Assigns initscr();
+    raw();
+    keypad(stdscr, TRUE);
+    noecho();remote socket values */
     /* shi rindina lkm citadak jo ir cipari nevis localhost */
     server_name = gethostbyname(client_address);
     remote_address.sin_family = AF_INET;
-    remote_address.sin_port = htons(client_port);
+    remote_address.sin_port = DEFAULT_PORT;
 
     /* ========== CONNECTS TO THE SERVER ========== */
 
@@ -75,7 +81,23 @@ int main(int argc, char** argv){
         if (connect(client_socket, (struct sockadrr *) &remote_address, sizeof(remote_address)) == 0) {
             printf("Connected!\n");
             /* Infinite loop sends client's Terminal messages if inputted */
+            initscr();
+            raw();
+            keypad(stdscr, TRUE);
+            noecho();
             while (1){
+                ch = getch();
+                switch (ch){
+                    case KEY_UP:
+                        printw("\nUp Arrow");
+                        break;
+                    case KEY_DOWN:
+                        printw("\nDown Arrow");
+                        break;
+                    default:
+                        printw("\nStop, please: %c!", ch);
+                }
+                endwin();
                 scanf("%s", inputs);
                 send(client_socket, inputs, strlen(inputs), 0);
             }

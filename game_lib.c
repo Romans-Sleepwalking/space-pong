@@ -75,7 +75,7 @@ int launch_game(int* game_state){
             printf("\t\tTimer: %1.1f seconds... nothing happened\n", seconds);
             seconds += refresh_rate;
         }
-        if (seconds > 60){
+        if (seconds > 250){
             break;
         }
     }
