@@ -2,7 +2,7 @@
 #define _PONG_LIB_H
 
     /* Picks substring from a parameter character array */
-    char* read_parameter_value(char* string);
+    char* read_param_value(int argc, char** argv, char magic_char);
     /* Counts string length */
     int str_length(char *string);
     /* Copies string content inside the another string by pointers */
@@ -16,5 +16,7 @@
     /* GUI */
     void initGrid(int x, int y);
     void drawGrid();
+    void drawBall(float cx, float cy);
+    void drawPaddle(double cy, char side);
 
 #endif

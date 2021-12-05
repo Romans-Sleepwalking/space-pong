@@ -7,19 +7,26 @@
  *      contains basic functional
  */
 
-/* Picks substring from a parameter character array */
-char* read_parameter_value(char* string) {
-    int i = 3;
-    char* substring = malloc(32);;
-    /* Loops until meets EOF character */
-    while (1){
-        /* Fills the substring character array */
-        substring[i-3] = string[i];
-        if (string[i] == '\0'){
-            break;
-        } else i++;
+/* Finds and picks a parameter value substring from a parameter array */
+char* read_param_value(int argc, char** argv, char magic_char){
+    int i, j;
+    char* substring = malloc(32);
+    /* Finds the required parameter */
+    for (i=0; i<argc; i++){
+        if (argv[i][0] == '-' && argv[i][1] == magic_char && argv[i][2] == '='){
+            j = 3;
+            /* Loops until meets EOF character */
+            while (1){
+                /* Fills the substring character array */
+                substring[j-3] = argv[i][j];
+                if (argv[i][j] == '\0'){
+                    break;
+                } else j++;
+            }
+            return substring;
+        }
     }
-    return substring;
+    return "404";
 }
 
 /* Counts string length */

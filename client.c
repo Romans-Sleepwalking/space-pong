@@ -25,7 +25,7 @@ float grid_rows = 40;
 
 /* ... */
 void initGUI(){
-    glClearColor(1, 0, 0, 0);
+    glClearColor(0.070, 0.015, 0.345, 1);
     initGrid(grid_columns, grid_rows);
 }
 
@@ -42,6 +42,9 @@ void reshape_callback(int w, int h){
 void display_callback(void){
     glClear(GL_COLOR_BUFFER_BIT);
     drawGrid();
+    drawBall(20.0, 25.0);
+    drawPaddle(15.0, 'L');
+    drawPaddle(30.0, 'R');
     glutSwapBuffers();
 }
 
@@ -61,8 +64,8 @@ int main(int argc, char** argv){
     /* Socket */
     int client_socket = 0;
     /* Process forking status */
+    int is_parent_proc = 0;
     int is_child_proc = 0;
-    int is_grandchild_proc = 0;
     /* Server */
     char *server_name;
     struct sockaddr_in remote_address;
@@ -73,40 +76,31 @@ int main(int argc, char** argv){
     char server_reply[6000];
 
 
-    /* ========== GUI LAUNCH ========== */
-    is_child_proc = fork();
-    if (is_child_proc){
+    printf("\tRunning space-pong client... ");
+
+    /* ========== GUI TEST LAUNCH ========== */
+
+    is_parent_proc = fork();
+    if (!is_parent_proc){
         glutInit(&argc, argv);
-        find_screen_center();
-        /* Main window settings */
-        glutInitWindowSize(window_width,window_height);
-        glutInitWindowPosition(window_x, window_y);
-        glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
-        glutCreateWindow("Space Pong");
-        glutDisplayFunc(display_callback);
-        glutReshapeFunc(reshape_callback);
-        initGUI();
+            find_screen_center();
+            /* Main window settings */
+            glutInitWindowSize(window_width,window_height);
+            glutInitWindowPosition(window_x, window_y);
+            glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
+            glutCreateWindow("Space Pong");
+            glutDisplayFunc(display_callback);
+            glutReshapeFunc(reshape_callback);
+            initGUI();
         glutMainLoop();
     }
 
     /* ========== READS CLIENT'S CONNECTION INFO ========== */
 
-    printf("\tRunning space-pong client... ");
-    /* Reads client connection info */
-    for (i=0; i<argc; i++){
-        /* Reads address */
-        if (argv[i][0] == '-' && argv[i][1] == 'a' && argv[i][2] == '='){
-            /* Calls parameter reading function from library */
-            client_address = read_parameter_value(argv[i]);
-        }
-        /* Reads port */
-        else if (argv[i][0] == '-' && argv[i][1] == 'p' && argv[i][2] == '='){
-            /* Calls parameter reading function from library and translates the substring to integer */
-            client_port = atoi(read_parameter_value(argv[i]));
-        }
-    }
+    printf("\tReading connection parameters...");
+    client_address = read_param_value(argc, argv, 'a');
+    client_port = atoi(read_param_value(argc, argv, 'p'));
     printf("address=\"%s\", port=%d\n", client_address, client_port);
-
 
     /* ========== CREATES SOCKET OBJECT ========== */
 
@@ -114,7 +108,6 @@ int main(int argc, char** argv){
     if ((client_socket = socket(AF_INET, SOCK_STREAM, 0)) >= 0){
         printf("\tClient socket created... ");
     } else {
-        /* If failed, throws an error  */
         printf("Error: client socket failed!\n");
         return -1;
     }
@@ -130,17 +123,17 @@ int main(int argc, char** argv){
     /* ========== CONNECTS TO THE SERVER ========== */
 
     /* Forks child process */
-    is_child_proc = fork();
+    is_parent_proc = fork();
     /* Child process connects to the server and interact with it */
-    if (is_child_proc) {
+    if (!is_parent_proc) {
         inet_pton(AF_INET, server_name, &remote_address.sin_addr);
         /* Connects to the server */
         if (connect(client_socket, (struct sockadrr *) &remote_address, sizeof(remote_address)) == 0) {
             printf("Connected!\n");
             /* Forks grandchild process */
-            is_grandchild_proc = fork();
-            /* Child process connects to the server and interact with it */
-            if (is_grandchild_proc) {
+            is_child_proc = fork();
+            /* Grandchild process connects to the server and interact with it */
+            if (!is_child_proc) {
 
             }
             else {

@@ -188,18 +188,8 @@ int main(int argc, char** argv){
     /* ========== READS SERVER'S CONNECTION INFO ========== */
 
     printf("\tReading connection parameters...");
-    for (i=0; i<argc; i++){
-        /* Reads hostname */
-        if (argv[i][0] == '-' && argv[i][1] == 'h' && argv[i][2] == '='){
-            /* Calls parameter reading function from library */
-            server_hostname = read_parameter_value(argv[i]);
-        }
-            /* Reads port */
-        else if (argv[i][0] == '-' && argv[i][1] == 'p' && argv[i][2] == '='){
-            /* Translates the port string to integer */
-            server_port = atoi(read_parameter_value(argv[i]));
-        }
-    }
+    server_hostname = read_param_value(argc, argv, 'h');
+    server_port = atoi(read_param_value(argc, argv, 'p'));
     printf("hostname=\"%s\"; port=%d\n", server_hostname, server_port);
 
     /* ========== ALLOCATES MEMORY FOR SERVER'S NEEDS ========== */
