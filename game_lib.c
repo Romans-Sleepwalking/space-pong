@@ -2,7 +2,7 @@
 #include<stdio.h>
 #include <time.h>
 /* Global default constants */
-#define DEFAULT_REFRESH_RATE 3
+#define DEFAULT_REFRESH_RATE 10
 
 /*
  * Space-pong library segment that
@@ -75,7 +75,7 @@ int launch_game(int* game_state){
             printf("\t\tTimer: %1.1f seconds... nothing happened\n", seconds);
             seconds += refresh_rate;
         }
-        if (seconds > 250){
+        if (seconds > 2500){
             break;
         }
     }

@@ -14,8 +14,8 @@
 #include <netdb.h>
 /* Global default constants */
 #define DEFAULT_MAX_CLIENTS 4
-#define DEFAULT_HOSTNAME "127.0.0.1"
-#define DEFAULT_PORT 12369
+#define DEFAULT_HOSTNAME "localhost"
+#define DEFAULT_PORT 6900
 #define DEFAULT_SHARED_MEMORY_SIZE 1024
 /* Global variables */
 char* shared_memory = NULL;

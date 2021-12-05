@@ -13,4 +13,8 @@
     /* Equivalent to the main function for the game session */
     void launch_game(int* game_state);
 
+    /* GUI */
+    void initGrid(int x, int y);
+    void drawGrid();
+
 #endif
