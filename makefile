@@ -22,7 +22,7 @@ clean_server: clean_lib
 test_server: build_server run_server clean_server
 
 build_client: build_lib
-	gcc client.c gui_lib.o utility_lib.o -std=c90 -lglut -lGLU -lGL -lm -lncurses -Wall -Wextra -fno-common -o client.o
+	gcc client.c gui_lib.o utility_lib.o  game_lib.o -std=c90 -lglut -lGLU -lGL -lm -lncurses -Wall -Wextra -fno-common -o client.o
 run_client:
 	@echo ===
 	@echo ====== TEST CLIENT ======

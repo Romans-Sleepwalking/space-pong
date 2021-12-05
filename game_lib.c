@@ -1,31 +1,42 @@
 /* PBM765 allowed library */
 #include<stdio.h>
+#include <unistd.h>
 #include <time.h>
-/* Global default constants */
-#define DEFAULT_REFRESH_RATE 10
+#include <sys/mman.h>
 
-/*
- * Space-pong library segment that
- *      creates a game
- *      contains pong logic methods
- */
+/* Default player's score */
+#define DEFAULT_PLAYER_SCORE 0.0
+/* Default game mode */
+#define DEFAULT_GAME_MODE 1.0
+#define DEFAULT_READY_PLAYER_COUNT 0.0
+/* Default ball parameters */
+#define DEFAULT_CX_BALL 40.0
+#define DEFAULT_CY_BALL 20.0
+#define DEFAULT_VX_BALL 0.5
+#define DEFAULT_VY_BALL 0.5
+/* Default paddles' coordinates */
+#define DEFAULT_CX_L_PADDLE 5.0
+#define DEFAULT_CY_L_PADDLE 15.0
+#define DEFAULT_CX_R_PADDLE 75.0
+#define DEFAULT_CY_R_PADDLE 25.0
+/* Calculation refresh rate */
+#define DEFAULT_REFRESH_RATE_SECONDS 0.2
 
 /* Equivalent to the main function for the game session */
-int launch_game(int* game_state){
+int launch_game(int* game_state_memory_ptr){
     /* Timings */
     float seconds = 5;
-    float refresh_rate = DEFAULT_REFRESH_RATE;
+    float refresh_rate = DEFAULT_REFRESH_RATE_SECONDS;
     clock_t timer;
     printf("\tPreparing the game with %1.1f seconds refresh rate... ", refresh_rate);
 
     /* ========== LOADING GAME MEMORY ========== */
 
-    int* score_team_1 = game_state;
+    int* score_team_1 = game_state_memory_ptr;
     int* score_team_2 = (int*)(score_team_1 +sizeof(int));
     /*game type is 1 or 2 (1 - 1v1, 2 - 2v2) */
     int* game_type = (int*)(score_team_2 +sizeof(int));
     int* ready_player_count =  (int*)(game_type + sizeof(int));
-
     /*ball info */
     float* ball_x = (float*)(ready_player_count + sizeof(int));
     float* ball_y = (float*)(ball_x + sizeof(float));
@@ -63,7 +74,7 @@ int launch_game(int* game_state){
     int* player4_width = (int*)(player4_height +sizeof(int));
     int* player4_color = (int*)(player4_width +sizeof(int));
 
-    printf("Memory loaded... ");
+    printf("Memory reserved... ");
 
     /* ========== LOOPS THE GAME PROCESS ========== */
 
@@ -82,3 +93,69 @@ int launch_game(int* game_state){
     printf("\tGame Over!\n");
     return 0;
 }
+
+
+
+/* Equivalent to the main function for the game session */
+void local_test_game(double* game_state_memory_ptr){
+    float wait_timer = 0;
+    float game_timer = 0;
+
+    printf("\tPreparing the game with %1.1f seconds refresh rate... ", DEFAULT_REFRESH_RATE_SECONDS);
+
+    /* ========== LOADING GAME MEMORY ========== */
+
+    /* P1, P2 scores */
+    game_state_memory_ptr[0] = DEFAULT_PLAYER_SCORE;
+    game_state_memory_ptr[1] = DEFAULT_PLAYER_SCORE;
+    /* Game mode: 1 (1v1) or 2 (2v2) */
+    game_state_memory_ptr[2] = DEFAULT_GAME_MODE;
+    /* Ready player count */
+    game_state_memory_ptr[3] = DEFAULT_READY_PLAYER_COUNT;
+    /* Ball parameters */
+    double* ball_cx = (double*)(game_state_memory_ptr + 4 * sizeof(double));
+    *ball_cx = DEFAULT_CX_BALL;
+    game_state_memory_ptr[5] = DEFAULT_CY_BALL;
+    game_state_memory_ptr[6] = DEFAULT_VX_BALL;
+    game_state_memory_ptr[7] = DEFAULT_VY_BALL;
+    /* Paddles' parameters */
+    game_state_memory_ptr[8] = DEFAULT_CX_L_PADDLE;
+    game_state_memory_ptr[9] = DEFAULT_CY_L_PADDLE;
+    game_state_memory_ptr[10] = DEFAULT_CX_R_PADDLE;
+    game_state_memory_ptr[11] = DEFAULT_CY_R_PADDLE;
+
+    printf("Game memory is ready... ");
+
+    /* Gives 5 seconds for players to prepare */
+    sleep(5);
+    printf("Game Launched!\n");
+
+    /* ========== LOOPS THE GAME PROCESS ========== */
+
+    /* Starts counting time */
+    game_timer = clock();
+    /* Infinite loop intil Game Over break */
+    while (1){
+        /* ====== BALL MOVEMENT ====== */
+
+        /* x = x + dx... y = y + dy */
+        game_state_memory_ptr[4] += game_state_memory_ptr[6];
+        game_state_memory_ptr[5] += game_state_memory_ptr[7];
+
+        if (game_state_memory_ptr[4] >= 80){
+            game_state_memory_ptr[4] = 0;
+        }
+        if (game_state_memory_ptr[5] >= 40){
+            game_state_memory_ptr[5] = 0;
+        }
+
+        if (game_timer > 2500000){
+            printf("\tGame Over!\n");
+            break;
+        }
+        sleep(DEFAULT_REFRESH_RATE_SECONDS);
+    }
+    return 0;
+}
+
+

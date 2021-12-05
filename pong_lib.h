@@ -12,11 +12,14 @@
 
     /* Equivalent to the main function for the game session */
     void launch_game(int* game_state);
+    void local_test_game(double* game_state_memory_ptr);
 
     /* GUI */
-    void initGrid(int x, int y);
-    void drawGrid();
-    void drawBall(float cx, float cy);
-    void drawPaddle(double cy, char side);
+    void initGrid(int x, int y, double* game_state_memory_ptr);
+    void drawGame();
+
+    /* Directions */
+    #define UP 1
+    #define DOWN -1
 
 #endif

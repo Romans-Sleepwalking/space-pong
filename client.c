@@ -22,11 +22,14 @@ int window_y;
 /* Game grid */
 float grid_columns = 80;
 float grid_rows = 40;
+/* FPS */
+#define FPS 60
 
-/* ... */
-void initGUI(){
+
+/* Initializes grid and memory */
+void initGUI(double* game_state_memory_ptr){
     glClearColor(0.070, 0.015, 0.345, 1);
-    initGrid(grid_columns, grid_rows);
+    initGrid(grid_columns, grid_rows, game_state_memory_ptr);
 }
 
 /* Reshapes the view port after user's interactions with window size: 100x100 maintains */
@@ -41,11 +44,18 @@ void reshape_callback(int w, int h){
 /* Game frame block */
 void display_callback(void){
     glClear(GL_COLOR_BUFFER_BIT);
-    drawGrid();
-    drawBall(20.0, 25.0);
-    drawPaddle(15.0, 'L');
-    drawPaddle(30.0, 'R');
+    drawGame();
     glutSwapBuffers();
+}
+
+/* Timer-updater */
+void timer_callback(int meow){
+    glutPostRedisplay();
+    glutTimerFunc(1000/FPS, timer_callback, 0);
+}
+
+void keyboard_callback(int w, int h){
+
 }
 
 
@@ -74,14 +84,23 @@ int main(int argc, char** argv){
     int ch;
     /* Messages */
     char server_reply[6000];
+    /* Game state memory block */
+    double* game_state_memory_ptr = (double*)malloc(1024 * sizeof(double));
 
+    /* ========== GAME TEST LAUNCH ========== */
 
-    printf("\tRunning space-pong client... ");
+    is_parent_proc = fork();
+    if (!is_parent_proc){
+        local_test_game(game_state_memory_ptr);
+    }
 
     /* ========== GUI TEST LAUNCH ========== */
 
     is_parent_proc = fork();
     if (!is_parent_proc){
+        sleep(8);
+        double* ball_cx = (double*)(game_state_memory_ptr + 4 * sizeof(double));
+        printf("%f", *ball_cx);
         glutInit(&argc, argv);
             find_screen_center();
             /* Main window settings */
@@ -91,9 +110,17 @@ int main(int argc, char** argv){
             glutCreateWindow("Space Pong");
             glutDisplayFunc(display_callback);
             glutReshapeFunc(reshape_callback);
-            initGUI();
+            initGUI(game_state_memory_ptr);
+            glutTimerFunc(0, timer_callback, 0);
         glutMainLoop();
     }
+    else {
+        sleep(1000000);
+    }
+
+    printf("\tRunning space-pong client... ");
+
+
 
     /* ========== READS CLIENT'S CONNECTION INFO ========== */
 
