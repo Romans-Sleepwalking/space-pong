@@ -4,6 +4,7 @@
 #include <time.h>
 #include <sys/mman.h>
 #include <math.h>
+#include <signal.h>
 
 /* Grid parameters */
 #define GRID_COLUMNS 80
@@ -18,18 +19,21 @@
 #define BALL_R 1.0
 #define DEFAULT_BALL_CX 40.0
 #define DEFAULT_BALL_CY 20.0
-#define DEFAULT_BALL_VX 0.5
-#define DEFAULT_BALL_VY 0.5
+#define DEFAULT_BALL_VX 0.2
+#define DEFAULT_BALL_VY 0.15
+#define VX_MULTIPLIER 1.05
+#define VY_MULTIPLIER 1.05
 /* Default paddles' parameters */
-#define PADDLE_WIDTH 1.0
+#define PADDLE_WIDTH 2.0
 #define PADDLE_HEIGHT 6.0
 #define DEFAULT_L_PADDLE_CX 5.0
-#define DEFAULT_L_PADDLE_CY 15.0
+#define DEFAULT_L_PADDLE_CY 20.0
 #define DEFAULT_R_PADDLE_CX 75.0
 #define DEFAULT_R_PADDLE_CY 25.0
 /* Calculation refresh rate */
 #define REFRESH_RATE_SECONDS 0.2
-
+/* Round start */
+int is_round_started = 0;
 /* For collision calculations */
 double BALL_TANG = sqrt(2 * pow(BALL_R, 2.0));
 double PADDLE_TRIG_LEN_X = PADDLE_WIDTH/2 + BALL_R;
@@ -107,9 +111,58 @@ int launch_game(int* game_state_memory_ptr){
     return 0;
 }
 
+void end_game(double* ball_cx, double* ball_vx, double* ball_vy){
+    *ball_cx = GRID_ROWS + BALL_R;
+    *ball_vx = 0;
+    *ball_vy = 0;
+}
+
+void start_round(double* ball_cx, double* ball_cy, double* ball_vx, double* ball_vy){
+    *ball_cx = DEFAULT_BALL_CX;
+    *ball_cy = DEFAULT_BALL_CY;
+    *ball_vx = DEFAULT_BALL_VX;
+    *ball_vy = DEFAULT_BALL_VY;
+}
+
+void move_paddle(char direction, double* coord, double* speed){
+    if (direction == 'U'){
+        if (*coord + *speed >= GRID_ROWS - PADDLE_TRIG_LEN_Y){
+            *coord = GRID_ROWS - PADDLE_TRIG_LEN_Y;
+        } else {
+            *coord += *speed;
+        }
+    }
+    else if (direction == 'D'){
+        if (*coord - *speed <= PADDLE_TRIG_LEN_Y){
+            *coord = PADDLE_TRIG_LEN_Y;
+        } else {
+            *coord -= *speed;
+        }
+    }
+    else if (direction == 'L'){
+        if (*coord - *speed <= BALL_R){
+            *coord = PADDLE_TRIG_LEN_X;
+        } else {
+            *coord -= *speed;
+        }
+    }
+    else if (direction == 'R'){
+        if (*coord + *speed >= GRID_COLUMNS - PADDLE_TRIG_LEN_X){
+            *coord = GRID_COLUMNS - PADDLE_TRIG_LEN_X;
+        } else {
+            *coord += *speed;
+        }
+    }
+}
+
 /* Equivalent to the main function for the game session */
-void move_ball(double* ballCX, double* ballCY, double* ballVX, double* ballVY, double* lScore, double* rScore,
+void move_ball(double* ballCX, double* ballCY, double* ballVX, double* ballVY, int* lScore, int* rScore,
                double* rPaddleCX, double* rPaddleCY, double* lPaddleCX, double* lPaddleCY){
+
+
+    /* Start round trigger */
+    /* If game has begun, speed will be not zero */
+
     /* Changes ball coordinate according to speed */
     *ballCX = (*ballCX + *ballVX);
     *ballCY = (*ballCY + *ballVY);
@@ -117,33 +170,34 @@ void move_ball(double* ballCX, double* ballCY, double* ballVX, double* ballVY, d
     /* ? HORIZONTAL UPPER/LOWER BORDER COLLISION */
     if ((*ballCY <= 2 * BALL_R) || (*ballCY >= GRID_ROWS - 2 * BALL_R)){
         /* Reflects the ball to the vertical direction: flips y speed component */
-        *ballVY = -(*ballVY);
+        *ballVY = -(*ballVY * VY_MULTIPLIER);
     }
 
     /* ? GOAL AT LEFT */
-    else if (*ballCX <= 0){
+    else if (*ballCX <= 0) {
         /* Left border collision -> right team scores */
         *rScore = (*rScore + 1);
         printf("TEAM RIGHT SCORES!");
-        /* Checks for game over */
-        if (*rScore >= MAX_SCORE){
-            /* TODO: Game Over Stuff */
+        if (*rScore >= MAX_SCORE) {
+            end_game(ballCX, ballVX, ballVY);
             printf("TEAM RIGHT WON!");
+        } else {
+            start_round(ballCX, ballCY, ballVX, ballVY);
         }
-        *ballCX = GRID_COLUMNS - BALL_R;
     }
 
     /* ? GOAL AT RIGHT */
     else if (*ballCX >= GRID_COLUMNS){
         /* Right border collision -> left team scores */
         *lScore = (*lScore + 1);
+        /* Forks a child process to handle a pause */
         printf("TEAM LEFT SCORES!");
-        /* Checks for game over */
-        if (*lScore >= MAX_SCORE){
-            /* TODO: Game Over Stuff */
+        if (*lScore >= MAX_SCORE) {
+            end_game(ballCX, ballVX, ballVY);
             printf("TEAM LEFT WON!");
+        } else {
+            start_round(ballCX, ballCY, ballVX, ballVY);
         }
-        *ballCX = BALL_R;
     }
 
     /* ? LEFT PADDLE COLLISION */
@@ -153,22 +207,7 @@ void move_ball(double* ballCX, double* ballCY, double* ballVX, double* ballVY, d
             (*lPaddleCY - PADDLE_TRIG_LEN_Y <= *ballCY) &&
             (*ballCY <= *lPaddleCY + PADDLE_TRIG_LEN_Y)
     ){
-        /* HORIZONTAL COLLISION */
-        if (fabs(*ballCX - *lPaddleCX) > fabs(*ballCY - *lPaddleCY)){
-            /* Reflects the ball to the horizontal direction: flips x speed component */
-            *ballVX = -(*ballVX);
-        }
-        /* VERTICAL COLLISION */
-        else if (fabs(*ballCX - *lPaddleCX) < fabs(*ballCY - *lPaddleCY)){
-            /* Reflects the ball to the vertical direction: flips y speed component */
-            *ballVY = -(*ballVY);
-        }
-        /* ANGULAR COLLISION */
-        else if (fabs(*ballCX - *lPaddleCX) == fabs(*ballCY - *lPaddleCY)){
-            /* Reflects the ball to the opposite direction: flips speed components */
-            *ballVX = -(*ballVX);
-            *ballVY = -(*ballVY);
-        }
+        *ballVX = -(*ballVX * VX_MULTIPLIER);
     }
 
     /* ? RIGHT PADDLE COLLISION */
@@ -178,22 +217,7 @@ void move_ball(double* ballCX, double* ballCY, double* ballVX, double* ballVY, d
             (*rPaddleCY - PADDLE_TRIG_LEN_Y <= *ballCY) &&
             (*ballCY <= *rPaddleCY + PADDLE_TRIG_LEN_Y)
     ){
-        /* HORIZONTAL COLLISION */
-        if (fabs(*ballCX - *rPaddleCX) > fabs(*ballCY - *rPaddleCY)){
-            /* Reflects the ball to the horizontal direction: flips x speed component */
-            *ballVX = -(*ballVX);
-        }
-            /* VERTICAL COLLISION */
-        else if (fabs(*ballCX - *rPaddleCX) < fabs(*ballCY - *rPaddleCY)){
-            /* Reflects the ball to the vertical direction: flips y speed component */
-            *ballVY = -(*ballVY);
-        }
-            /* ANGULAR COLLISION */
-        else if (fabs(*ballCX - *rPaddleCX) == fabs(*ballCY - *rPaddleCY)){
-            /* Reflects the ball to the opposite direction: flips speed components */
-            *ballVX = -(*ballVX);
-            *ballVY = -(*ballVY);
-        }
+        *ballVX = -(*ballVX * VX_MULTIPLIER);
     }
 }
 

@@ -3,6 +3,7 @@
 /* PBM765 allowed libraries */
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <string.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -13,22 +14,39 @@
 /* Default connection parameters */
 #define DEFAULT_HOSTNAME "localhost"
 #define DEFAULT_PORT 6900
-/* Window parameters */
-int window_width = 1600;
-int window_height = 800;
-int window_x;
-int window_y;
-/* Game grid */
-float grid_columns = 80;
-float grid_rows = 40;
+/* GUI window parameters */
+#define WINDOW_WIDTH 1600
+#define WINDOW_HEIGHT 800
 /* Drawing frames per second */
 #define FPS 60
 
+/* Mutable variables required for drawing */
+char* l_team_name = "Left Player";
+char* r_team_name = "Right Player";
+int l_team_score = 0;
+int r_team_score = 0;
+int grid_columns = 80;
+int grid_rows = 40;
+double paddle_width = 2.0;
+double paddle_height = 6.0;
+double ball_r = 1.0;
+double ball_cx = 40.0;
+double ball_cy = 20.0;
+double ball_vx = 0.2;
+double ball_vy = 0.15;
+double paddle_speed = 1.5;
+double r_paddle_cx = 74.5;
+double r_paddle_cy = 25.0;
+double l_paddle_cx = 4.5;
+double l_paddle_cy = 15.0;
+
 
 /* Initializes grid and memory */
-void initGUI(double* game_state_memory_ptr){
+void initGUI(){
     glClearColor(0.070, 0.015, 0.345, 1);
-    initGrid(grid_columns, grid_rows, game_state_memory_ptr);
+    initGrid(l_team_name, r_team_name, &l_team_score, &r_team_score, &grid_columns, &grid_rows,
+             &paddle_width, &paddle_height, &ball_r, &ball_cx, &ball_cy, &ball_vx, &ball_vy,
+             &r_paddle_cx, &r_paddle_cy, &l_paddle_cx, &l_paddle_cy);
 }
 
 /* Reshapes the view port after user's interactions with window size: 100x100 maintains */
@@ -53,15 +71,44 @@ void timer_callback(int meow){
     glutTimerFunc(1000/FPS, timer_callback, 0);
 }
 
-void keyboard_callback(int w, int h){
-    /* TODO */
+void wasd_callback(unsigned char key_pressed, int a, int b){
+    /* Left player use WASD: ASCII integers */
+    switch (key_pressed) {
+        case 'w':  /* up */
+            move_paddle('U', &l_paddle_cy, &paddle_speed);
+            break;
+        case 's':  /* down */
+            move_paddle('D', &l_paddle_cy, &paddle_speed);
+            break;
+        case 'a':  /* left */
+            move_paddle('L', &l_paddle_cx, &paddle_speed);
+            break;
+        case 'd':  /* right */
+            move_paddle('R', &l_paddle_cx, &paddle_speed);
+            break;
+        case 27: /* ESC = exit */
+            exit (1);
+    }
 }
 
-/* Finds center of the monitor's screen */
-void find_screen_center(){
-    window_x = (glutGet (GLUT_SCREEN_WIDTH) - window_width)/2;
-    window_y = (glutGet (GLUT_SCREEN_HEIGHT) - window_height)/2;
+void arrowkeys_callback(int key_pressed, int a, int b){
+    /* Right player use arrowkeys: special OpenGL symbols */
+    switch (key_pressed) {
+        case GLUT_KEY_UP:  /* up */
+            move_paddle('U', &r_paddle_cy, &paddle_speed);
+            break;
+        case GLUT_KEY_DOWN:  /* down */
+            move_paddle('D', &r_paddle_cy, &paddle_speed);
+            break;
+        case GLUT_KEY_LEFT:  /* left */
+            move_paddle('L', &r_paddle_cx, &paddle_speed);
+            break;
+        case GLUT_KEY_RIGHT:  /* right */
+            move_paddle('R', &r_paddle_cx, &paddle_speed);
+            break;
+    }
 }
+
 
 
 int main(int argc, char** argv){
@@ -86,26 +133,29 @@ int main(int argc, char** argv){
     double* game_state_memory_ptr = (double*)malloc(1024 * sizeof(double));
 
 
+    /* ========== "SHARED MEMORY" ========== */
+
+    /* TODO */
+
     /* ========== GUI TEST LAUNCH ========== */
 
     is_parent_proc = fork();
     if (!is_parent_proc){
         glutInit(&argc, argv);
-            find_screen_center();
             /* Main window settings */
-            glutInitWindowSize(window_width,window_height);
-            glutInitWindowPosition(window_x, window_y);
+            glutInitWindowSize(WINDOW_WIDTH,WINDOW_HEIGHT);
             glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
             glutCreateWindow("Space Pong");
             glutDisplayFunc(display_callback);
             glutReshapeFunc(reshape_callback);
-            initGUI(game_state_memory_ptr);
+            glutKeyboardFunc(wasd_callback);
+            glutSpecialFunc(arrowkeys_callback);
+            initGUI();
             glutTimerFunc(0, timer_callback, 0);
         glutMainLoop();
     }
 
     printf("\tRunning space-pong client... ");
-
 
 
     /* ========== READS CLIENT'S CONNECTION INFO ========== */
