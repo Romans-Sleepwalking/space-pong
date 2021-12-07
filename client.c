@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <stdlib.h>
-#include <ncurses.h>
 #include <GL/glut.h>
 
 /* Default connection parameters */
@@ -104,9 +103,6 @@ int main(int argc, char** argv){
             glutTimerFunc(0, timer_callback, 0);
         glutMainLoop();
     }
-    else {
-        sleep(1000000);
-    }
 
     printf("\tRunning space-pong client... ");
 
@@ -155,21 +151,6 @@ int main(int argc, char** argv){
             }
             else {
                 while (1) {
-                    /*
-                    ch = getch();
-                    switch (ch) {
-                        case KEY_UP:
-                            printw("\nUp Arrow");
-                            break;
-                        case KEY_DOWN:
-                            printw("\nDown Arrow");
-                            break;
-                        default:
-                            printw("\nStop, please: %c!", ch);
-                    }
-                    scanf("%s", inputs);
-                    send(client_socket, inputs, strlen(inputs), 0);
-                     */
                     sleep(1);
                 }
             }
