@@ -1,9 +1,9 @@
 all: test_client
 
 build_lib:
-	gcc -c gui_lib.c  -Wall -Wextra -fno-common -std=c90 -o gui_lib.o
 	gcc -c utility_lib.c -Wall -Wextra -fno-common -std=c90 -o utility_lib.o
 	gcc -c game_lib.c -Wall -Wextra -fno-common -std=c90 -o game_lib.o
+	gcc -c gui_lib.c game_lib.o -Wall -Wextra -fno-common -std=c90 -o gui_lib.o
 clean_lib:
 	rm utility_lib.o
 	rm game_lib.o

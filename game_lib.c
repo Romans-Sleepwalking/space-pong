@@ -3,30 +3,43 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/mman.h>
+#include <math.h>
 
-/* Default player's score */
-#define DEFAULT_PLAYER_SCORE 0.0
+/* Grid parameters */
+#define GRID_COLUMNS 80
+#define GRID_ROWS 40
+/* Default teams' score parameters */
+#define DEFAULT_SCORE 0.0
+#define MAX_SCORE 69
 /* Default game mode */
-#define DEFAULT_GAME_MODE 1.0
-#define DEFAULT_READY_PLAYER_COUNT 0.0
+#define GAME_MODE 1.0
+#define DEFAULT_READY_PLAYERS_COUNT 0.0
 /* Default ball parameters */
-#define DEFAULT_CX_BALL 40.0
-#define DEFAULT_CY_BALL 20.0
-#define DEFAULT_VX_BALL 0.5
-#define DEFAULT_VY_BALL 0.5
-/* Default paddles' coordinates */
-#define DEFAULT_CX_L_PADDLE 5.0
-#define DEFAULT_CY_L_PADDLE 15.0
-#define DEFAULT_CX_R_PADDLE 75.0
-#define DEFAULT_CY_R_PADDLE 25.0
+#define BALL_R 1.0
+#define DEFAULT_BALL_CX 40.0
+#define DEFAULT_BALL_CY 20.0
+#define DEFAULT_BALL_VX 0.5
+#define DEFAULT_BALL_VY 0.5
+/* Default paddles' parameters */
+#define PADDLE_WIDTH 1.0
+#define PADDLE_HEIGHT 6.0
+#define DEFAULT_L_PADDLE_CX 5.0
+#define DEFAULT_L_PADDLE_CY 15.0
+#define DEFAULT_R_PADDLE_CX 75.0
+#define DEFAULT_R_PADDLE_CY 25.0
 /* Calculation refresh rate */
-#define DEFAULT_REFRESH_RATE_SECONDS 0.2
+#define REFRESH_RATE_SECONDS 0.2
+
+/* For collision calculations */
+double BALL_TANG = sqrt(2 * pow(BALL_R, 2.0));
+double PADDLE_TRIG_LEN_X = PADDLE_WIDTH/2 + BALL_R;
+double PADDLE_TRIG_LEN_Y = PADDLE_HEIGHT/2 + BALL_R;
 
 /* Equivalent to the main function for the game session */
 int launch_game(int* game_state_memory_ptr){
     /* Timings */
     float seconds = 5;
-    float refresh_rate = DEFAULT_REFRESH_RATE_SECONDS;
+    float refresh_rate = REFRESH_RATE_SECONDS;
     clock_t timer;
     printf("\tPreparing the game with %1.1f seconds refresh rate... ", refresh_rate);
 
@@ -94,68 +107,94 @@ int launch_game(int* game_state_memory_ptr){
     return 0;
 }
 
-
-
 /* Equivalent to the main function for the game session */
-void local_test_game(double* game_state_memory_ptr){
-    float wait_timer = 0;
-    float game_timer = 0;
+void move_ball(double* ballCX, double* ballCY, double* ballVX, double* ballVY, double* lScore, double* rScore,
+               double* rPaddleCX, double* rPaddleCY, double* lPaddleCX, double* lPaddleCY){
+    /* Changes ball coordinate according to speed */
+    *ballCX = (*ballCX + *ballVX);
+    *ballCY = (*ballCY + *ballVY);
 
-    printf("\tPreparing the game with %1.1f seconds refresh rate... ", DEFAULT_REFRESH_RATE_SECONDS);
-
-    /* ========== LOADING GAME MEMORY ========== */
-
-    /* P1, P2 scores */
-    game_state_memory_ptr[0] = DEFAULT_PLAYER_SCORE;
-    game_state_memory_ptr[1] = DEFAULT_PLAYER_SCORE;
-    /* Game mode: 1 (1v1) or 2 (2v2) */
-    game_state_memory_ptr[2] = DEFAULT_GAME_MODE;
-    /* Ready player count */
-    game_state_memory_ptr[3] = DEFAULT_READY_PLAYER_COUNT;
-    /* Ball parameters */
-    double* ball_cx = (double*)(game_state_memory_ptr + 4 * sizeof(double));
-    *ball_cx = DEFAULT_CX_BALL;
-    game_state_memory_ptr[5] = DEFAULT_CY_BALL;
-    game_state_memory_ptr[6] = DEFAULT_VX_BALL;
-    game_state_memory_ptr[7] = DEFAULT_VY_BALL;
-    /* Paddles' parameters */
-    game_state_memory_ptr[8] = DEFAULT_CX_L_PADDLE;
-    game_state_memory_ptr[9] = DEFAULT_CY_L_PADDLE;
-    game_state_memory_ptr[10] = DEFAULT_CX_R_PADDLE;
-    game_state_memory_ptr[11] = DEFAULT_CY_R_PADDLE;
-
-    printf("Game memory is ready... ");
-
-    /* Gives 5 seconds for players to prepare */
-    sleep(5);
-    printf("Game Launched!\n");
-
-    /* ========== LOOPS THE GAME PROCESS ========== */
-
-    /* Starts counting time */
-    game_timer = clock();
-    /* Infinite loop intil Game Over break */
-    while (1){
-        /* ====== BALL MOVEMENT ====== */
-
-        /* x = x + dx... y = y + dy */
-        game_state_memory_ptr[4] += game_state_memory_ptr[6];
-        game_state_memory_ptr[5] += game_state_memory_ptr[7];
-
-        if (game_state_memory_ptr[4] >= 80){
-            game_state_memory_ptr[4] = 0;
-        }
-        if (game_state_memory_ptr[5] >= 40){
-            game_state_memory_ptr[5] = 0;
-        }
-
-        if (game_timer > 2500000){
-            printf("\tGame Over!\n");
-            break;
-        }
-        sleep(DEFAULT_REFRESH_RATE_SECONDS);
+    /* ? HORIZONTAL UPPER/LOWER BORDER COLLISION */
+    if ((*ballCY <= 2 * BALL_R) || (*ballCY >= GRID_ROWS - 2 * BALL_R)){
+        /* Reflects the ball to the vertical direction: flips y speed component */
+        *ballVY = -(*ballVY);
     }
-    return 0;
+
+    /* ? GOAL AT LEFT */
+    else if (*ballCX <= 0){
+        /* Left border collision -> right team scores */
+        *rScore = (*rScore + 1);
+        printf("TEAM RIGHT SCORES!");
+        /* Checks for game over */
+        if (*rScore >= MAX_SCORE){
+            /* TODO: Game Over Stuff */
+            printf("TEAM RIGHT WON!");
+        }
+        *ballCX = GRID_COLUMNS - BALL_R;
+    }
+
+    /* ? GOAL AT RIGHT */
+    else if (*ballCX >= GRID_COLUMNS){
+        /* Right border collision -> left team scores */
+        *lScore = (*lScore + 1);
+        printf("TEAM LEFT SCORES!");
+        /* Checks for game over */
+        if (*lScore >= MAX_SCORE){
+            /* TODO: Game Over Stuff */
+            printf("TEAM LEFT WON!");
+        }
+        *ballCX = BALL_R;
+    }
+
+    /* ? LEFT PADDLE COLLISION */
+    else if (
+            (*lPaddleCX - PADDLE_TRIG_LEN_X <= *ballCX) &&
+            (*ballCX <= *lPaddleCX + PADDLE_TRIG_LEN_X) &&
+            (*lPaddleCY - PADDLE_TRIG_LEN_Y <= *ballCY) &&
+            (*ballCY <= *lPaddleCY + PADDLE_TRIG_LEN_Y)
+    ){
+        /* HORIZONTAL COLLISION */
+        if (fabs(*ballCX - *lPaddleCX) > fabs(*ballCY - *lPaddleCY)){
+            /* Reflects the ball to the horizontal direction: flips x speed component */
+            *ballVX = -(*ballVX);
+        }
+        /* VERTICAL COLLISION */
+        else if (fabs(*ballCX - *lPaddleCX) < fabs(*ballCY - *lPaddleCY)){
+            /* Reflects the ball to the vertical direction: flips y speed component */
+            *ballVY = -(*ballVY);
+        }
+        /* ANGULAR COLLISION */
+        else if (fabs(*ballCX - *lPaddleCX) == fabs(*ballCY - *lPaddleCY)){
+            /* Reflects the ball to the opposite direction: flips speed components */
+            *ballVX = -(*ballVX);
+            *ballVY = -(*ballVY);
+        }
+    }
+
+    /* ? RIGHT PADDLE COLLISION */
+    else if (
+            (*rPaddleCX - PADDLE_TRIG_LEN_X <= *ballCX) &&
+            (*ballCX <= *rPaddleCX + PADDLE_TRIG_LEN_X) &&
+            (*rPaddleCY - PADDLE_TRIG_LEN_Y <= *ballCY) &&
+            (*ballCY <= *rPaddleCY + PADDLE_TRIG_LEN_Y)
+    ){
+        /* HORIZONTAL COLLISION */
+        if (fabs(*ballCX - *rPaddleCX) > fabs(*ballCY - *rPaddleCY)){
+            /* Reflects the ball to the horizontal direction: flips x speed component */
+            *ballVX = -(*ballVX);
+        }
+            /* VERTICAL COLLISION */
+        else if (fabs(*ballCX - *rPaddleCX) < fabs(*ballCY - *rPaddleCY)){
+            /* Reflects the ball to the vertical direction: flips y speed component */
+            *ballVY = -(*ballVY);
+        }
+            /* ANGULAR COLLISION */
+        else if (fabs(*ballCX - *rPaddleCX) == fabs(*ballCY - *rPaddleCY)){
+            /* Reflects the ball to the opposite direction: flips speed components */
+            *ballVX = -(*ballVX);
+            *ballVY = -(*ballVY);
+        }
+    }
 }
 
 

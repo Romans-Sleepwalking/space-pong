@@ -14,6 +14,10 @@
     void launch_game(int* game_state);
     void local_test_game(double* game_state_memory_ptr);
 
+    /* FOR TESTING */
+    void move_ball(double* ballCX, double* ballCY, double* ballVX, double* ballVY, double* lScore, double* rScore,
+                   double* rPaddleCX, double* rPaddleCY, double* lPaddleCX, double* lPaddleCY);
+
     /* GUI */
     void initGrid(int x, int y, double* game_state_memory_ptr);
     void drawGame();

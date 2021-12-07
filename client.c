@@ -22,7 +22,7 @@ int window_y;
 /* Game grid */
 float grid_columns = 80;
 float grid_rows = 40;
-/* FPS */
+/* Drawing frames per second */
 #define FPS 60
 
 
@@ -55,9 +55,8 @@ void timer_callback(int meow){
 }
 
 void keyboard_callback(int w, int h){
-
+    /* TODO */
 }
-
 
 /* Finds center of the monitor's screen */
 void find_screen_center(){
@@ -87,20 +86,11 @@ int main(int argc, char** argv){
     /* Game state memory block */
     double* game_state_memory_ptr = (double*)malloc(1024 * sizeof(double));
 
-    /* ========== GAME TEST LAUNCH ========== */
-
-    is_parent_proc = fork();
-    if (!is_parent_proc){
-        local_test_game(game_state_memory_ptr);
-    }
 
     /* ========== GUI TEST LAUNCH ========== */
 
     is_parent_proc = fork();
     if (!is_parent_proc){
-        sleep(8);
-        double* ball_cx = (double*)(game_state_memory_ptr + 4 * sizeof(double));
-        printf("%f", *ball_cx);
         glutInit(&argc, argv);
             find_screen_center();
             /* Main window settings */
