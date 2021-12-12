@@ -1,10 +1,16 @@
 #ifndef _PONG_LIB_H
 #define _PONG_LIB_H
-
+  #include <stdbool.h>
     /* Direction constants */
     #define UP 1
     #define DOWN -1
-
+    #define FILENAME "server.c"
+    
+    /* All related to shared memory block   */
+    
+    char * attach_memory_block(char *filename, int size);
+    bool detach_memory_block(char *block);
+    bool destroy_memory_block(char *filename);
     /* Picks substring from a parameter character array */
     char* read_param_value(int argc, char** argv, char magic_char);
     /* Counts string length */

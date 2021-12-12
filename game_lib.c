@@ -100,7 +100,7 @@ int launch_game(int* game_state_memory_ptr){
     timer = clock();
     while (1){
         if ((((double)clock()-timer)/CLOCKS_PER_SEC) >= seconds){
-            printf("\t\tTimer: %1.1f seconds... nothing happened\n", seconds);
+          printf("\t\tTimer: %1.1f seconds... nothing happened\n", seconds); 
             seconds += refresh_rate;
         }
         if (seconds > 2500){

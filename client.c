@@ -20,6 +20,27 @@
 /* Drawing frames per second */
 #define FPS 60
 
+/* Predefined example packets for tests (integers in BIG endian (Network byte order)) */
+/* P1  JOIN        DIV     NPK      P  SIZE      DATA                                             CS   DIV      */
+char pack1[34] = {'-','-', 0,0,0,0, 1, 0,0,0,20, 'n','i','c','k',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 26, '-','-'};
+/* P3  MESSAGE     DIV      NPK      P  SIZE      DATA                                             CS   DIV      */
+char pack3[272] = {'-','-', 0,0,0,1, 3, 0,0,1,2, /* TA  S  MESSAGE */
+                                                   -1, 0, 'T','h','i','s',' ','i','s',' ','m','e','s','s','a','g','e','!',0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,         /*  CS   DIV       */
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 136, '-','-'};
+/* P6  PLAYER READY  DIV     NPK      P  SIZE      DATA  CS   DIV      */
+char pack6[15] =   {'-','-', 0,0,0,2, 6, 0,0,0,1,  1,    4, '-','-'};
+/* P8  INPUT       DIV     NPK      P  SIZE      DATA  CS   DIV      */
+char pack8[15] = {'-','-', 0,0,0,3, 8, 0,0,0,1,  4,    14, '-','-'};
+/* P9  STATUS      DIV     NPK      P  SIZE      DATA  CS   DIV      */
+char pack9[14] = {'-','-', 0,0,0,4, 9, 0,0,0,0,        13, '-','-'};
 /* Mutable variables required for drawing */
 char* l_team_name = "Left Player";
 char* r_team_name = "Right Player";
@@ -197,10 +218,29 @@ int main(int argc, char** argv){
             is_child_proc = fork();
             /* Grandchild process connects to the server and interact with it */
             if (!is_child_proc) {
-
+                 /*  
+                 
+                   sleep(1); 
+                       send(client_socket, pack9, 14, 0);*/
+               
+                     while (1) {
+                     send(client_socket, pack6, 15, 0);
+                     sleep(1);
+                       send(client_socket, pack8, 15, 0);
+                       sleep(1);
+                     send(client_socket, pack9, 14, 0);
+                     sleep(1);
+                 /*   scanf("%s", inputs);
+                    send(client_socket, inputs, strlen(inputs), 0);
+                    sleep(1); */
+                }
             }
             else {
+
+        
                 while (1) {
+                    scanf("%s", inputs);
+                    send(client_socket, inputs, strlen(inputs), 0);
                     sleep(1);
                 }
             }
