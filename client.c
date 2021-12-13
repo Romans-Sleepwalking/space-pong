@@ -22,7 +22,7 @@
 
 /* Predefined example packets for tests (integers in BIG endian (Network byte order)) */
 /* P1  JOIN        DIV     NPK      P  SIZE      DATA                                             CS   DIV      */
-char pack1[34] = {'-','-', 0,0,0,0, 1, 0,0,0,20, 'n','i','c','k',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 26, '-','-'};
+char pack1[34] = {'-','-', 0,0,0,0, 1, 0,0,0,20, 'n',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 26, '-','-'};
 /* P3  MESSAGE     DIV      NPK      P  SIZE      DATA                                             CS   DIV      */
 char pack3[272] = {'-','-', 0,0,0,1, 3, 0,0,1,2, /* TA  S  MESSAGE */
                                                    -1, 0, 'T','h','i','s',' ','i','s',' ','m','e','s','s','a','g','e','!',0,0,0,0,0,0,0,0,0,
@@ -39,8 +39,8 @@ char pack3[272] = {'-','-', 0,0,0,1, 3, 0,0,1,2, /* TA  S  MESSAGE */
 char pack6[15] =   {'-','-', 0,0,0,2, 6, 0,0,0,1,  1,    4, '-','-'};
 /* P8  INPUT       DIV     NPK      P  SIZE      DATA  CS   DIV      */
 char pack8[15] = {'-','-', 0,0,0,3, 8, 0,0,0,1,  4,    14, '-','-'};
-/* P9  STATUS      DIV     NPK      P  SIZE      DATA  CS   DIV      */
-char pack9[14] = {'-','-', 0,0,0,4, 9, 0,0,0,0,        13, '-','-'};
+/* P9  STATUS(Optional)      DIV     NPK      P  SIZE      DATA  CS   DIV      
+char pack9[14] = {'-','-', 0,0,0,4, 9, 0,0,0,0,        13, '-','-'};*/
 /* Mutable variables required for drawing */
 char* l_team_name = "Left Player";
 char* r_team_name = "Right Player";
@@ -60,9 +60,25 @@ double r_paddle_cx = 74.5;
 double r_paddle_cy = 25.0;
 double l_paddle_cx = 4.5;
 double l_paddle_cy = 15.0;
+char printable_char(char c);
 
+char* createPackage1(int id, char* data_segment, int package_number);
+char* createPackage3(char* data_segment, int package_number);
+char* createPackage6(char client_id, int package_number);
+char* createPackage8(char key_press, int package_number);
 
+char calculate_checksum(char* buffer, int n);
+int get_4_bit_integer(void * addr);
+void print_Bytes(void* packet, int count);
 /* Initializes grid and memory */
+void direct_copy_data_as_bytes(void* packet, void* data, int size){
+  int i;
+  char* p = packet;
+  char* d = data;
+  for(i=0; i<size;i++){
+    p[i] = d[i];
+  }
+}
 void initGUI(){
     glClearColor(0.070, 0.015, 0.345, 1);
     initGrid(l_team_name, r_team_name, &l_team_score, &r_team_score, &grid_columns, &grid_rows,
@@ -131,15 +147,24 @@ void arrowkeys_callback(int key_pressed, int a, int b){
 }
 
 
-
+/* ------------------------------------------------------------------------------------------------------*/
 int main(int argc, char** argv){
+    /*example package 1 */
+    char* package1 = createPackage1(1, "Alohaaaaa", 0 );
+    char* package3 = createPackage3("TThis is the message", 1 );
+    char* package6 = createPackage6(1, 2);
+    char* package8 = createPackage8(4, 3);
+           /*  printf("Package1: %s\n", package); */
+               print_Bytes(package6, 15);
+                print_Bytes(package8, 15);
     int i;
     /* Assigns default values to client connection info */
     char* client_address = DEFAULT_HOSTNAME;
     int client_port = DEFAULT_PORT;
     /* Socket */
     int client_socket = 0;
-    /* Process forking status */
+    /* Process forking stat
+    us */
     int is_parent_proc = 0;
     int is_child_proc = 0;
     /* Server */
@@ -224,11 +249,13 @@ int main(int argc, char** argv){
                        send(client_socket, pack9, 14, 0);*/
                
                      while (1) {
-                     send(client_socket, pack6, 15, 0);
+                     send(client_socket, package1, 34, 0);
                      sleep(1);
-                       send(client_socket, pack8, 15, 0);
+                       send(client_socket, package3, 272, 0);
                        sleep(1);
-                     send(client_socket, pack9, 14, 0);
+                     send(client_socket, package6, 15, 0);
+                     sleep(1);
+                     send(client_socket, package8, 15, 0);
                      sleep(1);
                  /*   scanf("%s", inputs);
                     send(client_socket, inputs, strlen(inputs), 0);
@@ -258,4 +285,199 @@ int main(int argc, char** argv){
             }
         }
     }
+}
+
+
+void print_Bytes(void* packet, int count){
+    int i;
+    unsigned char* p = (unsigned char*) packet;
+    if(count>999){
+        printf("Cannot print more than 999 bytes! You asked for %d\n",count);
+        return;
+    }
+    printf("Printing %d bytes...\n",count);
+    printf("[NPK] [C] [HEX] [DEC] [ BINARY ]\n");
+    printf("================================\n");
+    for(i=0;i<count;i++){
+        printf(" %3d | %c | %02X | %3d | %c%c%c%c%c%c%c%c\n",i,printable_char(p[i]),p[i],p[i],
+        p[i] & 0x80 ? '1':'0',
+        p[i] & 0x40 ? '1':'0',
+        p[i] & 0x20 ? '1':'0',
+        p[i] & 0x10 ? '1':'0',
+        p[i] & 0x08 ? '1':'0',
+        p[i] & 0x04 ? '1':'0',
+        p[i] & 0x02 ? '1':'0',
+        p[i] & 0x01 ? '1':'0'
+        );
+    }
+}
+char* createPackage1(int pack_id, char* data_segment, int package_number){
+     unsigned int number2 = htonl(package_number);
+     char packageNumberString[4];
+     char packageSizeString[4];
+     char packageIdString;
+     unsigned char checksum = 0;
+     memcpy(packageNumberString, &number2, 4);
+     int pos = 0;
+     int size;
+     /*char pack1[34] = {'-','-', 0,0,0,0, 1, 0,0,0,20, 'n','i','c','k',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 26, '-','-'};   */
+     /* package 1 */
+     char* package =NULL;
+            if(pack_id == 1)
+            {   
+        
+             package = pack1;
+               int i = 2;
+               int posNum = i+4;
+                 /* Adding package number */
+               for(i = 2; i<posNum; i++){
+                   package[i] = packageNumberString[i-2];
+               }
+                /* Adding nickname to package */
+               i= 11;
+               while(data_segment[i-11] != '\0'){
+                 package[i] = data_segment[i-11];
+                 i++;
+               }
+               /* Adding 0 in the remaining data segment */
+               for(i; i<31; i++){
+                   package[i] = 0;
+               }
+
+              /* Calculating and adding checksum */
+               package[i] = 0;
+              checksum = (unsigned char) calculate_checksum(package+2, 28);
+              package[i] = checksum;
+             
+           }
+           if(pack_id == 3){
+              package = pack3;
+               int i = 2;
+               int posNum = i+4;
+                 /* Adding package number */
+               for(i = 2; i<posNum; i++){
+                   package[i] = packageNumberString[i-2];
+               }  
+                /* Adding message to package */
+               i= 13;
+               while(data_segment[i-13] != '\0'){
+                 package[i] = data_segment[i-13];
+                 i++;
+               }
+               /* Adding 0 in the remaining data segment */
+               for(i; i<31; i++){
+                   package[i] = 0;
+               }
+
+              /* Calculating and adding checksum */
+               package[i] = 0;
+              checksum = (unsigned char) calculate_checksum(package+2, 28);
+              package[i] = checksum;
+
+           }
+     return package;
+}
+char* createPackage3(char* data_segment, int package_number){
+     unsigned int number2 = htonl(package_number);
+     char packageNumberString[4];
+     char packageSizeString[4];
+     char packageIdString;
+     unsigned char checksum = 0;
+     int pack_id = 3;
+     memcpy(packageNumberString, &number2, 4);
+     int pos = 0;
+     int size;
+     /*char pack1[34] = {'-','-', 0,0,0,0, 1, 0,0,0,20, 'n','i','c','k',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 26, '-','-'};   */
+     /* package 1 */
+     char* package =NULL;    
+              package = pack3;
+               int i = 2;
+               int posNum = i+4;
+                 /* Adding package number */
+               for(i = 2; i<posNum; i++){
+                   package[i] = packageNumberString[i-2];
+               }  
+                /* Adding message to package */
+               i= 13;
+               while(data_segment[i-13] != '\0'){
+                 package[i] = data_segment[i-13];
+                 i++;
+               }
+               /* Adding 0 in the remaining data segment */
+               for(i; i<270; i++){
+                   package[i] = 0;
+               }
+
+              /* Calculating and adding checksum */
+               package[i] = 0;
+              checksum = (unsigned char) calculate_checksum(package+2, 266);
+              package[i] = checksum;
+
+     return package;
+}
+char* createPackage6(char client_id, int package_number){
+     unsigned int number2 = htonl(package_number);
+     char packageNumberString[4];
+     unsigned char checksum = 0;
+     memcpy(packageNumberString, &number2, 4);
+     int pos = 0;
+     /*char pack1[34] = {'-','-', 0,0,0,0, 1, 0,0,0,20, 'n','i','c','k',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 26, '-','-'};   */
+     /* package 1 */
+     char* package =NULL;    
+              package = pack6;
+               int i = 2;
+               int posNum = i+4;
+                 /* Adding package number */
+               for(i = 2; i<posNum; i++){
+                   package[i] = packageNumberString[i-2];
+               }  
+                
+              package[11] = client_id;
+
+              /* Calculating and adding checksum */
+              checksum = (unsigned char) calculate_checksum(package+2, 10);
+              package[12] = checksum;
+
+     return package;
+}
+char* createPackage8(char key_press, int package_number){
+     unsigned int number2 = htonl(package_number);
+     char packageNumberString[4];
+     unsigned char checksum = 0;
+     memcpy(packageNumberString, &number2, 4);
+     int pos = 0;
+     /*char pack1[34] = {'-','-', 0,0,0,0, 1, 0,0,0,20, 'n','i','c','k',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 26, '-','-'};   */
+     /* package 1 */
+     char* package =NULL;    
+              package = pack8;
+               int i = 2;
+               int posNum = i+4;
+                 /* Adding package number */
+               for(i = 2; i<posNum; i++){
+                   package[i] = packageNumberString[i-2];
+               }  
+                
+              package[11] = key_press;
+
+              /* Calculating and adding checksum */
+              checksum = (unsigned char) calculate_checksum(package+2, 10);
+              package[12] = checksum;
+
+     return package;
+}
+int get_4_bit_integer(void * addr){
+  return ntohl(*((int*)addr));
+}
+
+char calculate_checksum(char* buffer, int n){
+  int i;
+  char res=0;
+  for(i = 0; i<n; i++){
+    res ^= buffer[i];
+  }
+  return res;
+}
+char printable_char(char c){
+    if(isprint(c)) return c;
+    return '#';
 }
