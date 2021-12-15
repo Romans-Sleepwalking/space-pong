@@ -31,7 +31,7 @@
 #define DEFAULT_R_PADDLE_CX 75.0
 #define DEFAULT_R_PADDLE_CY 25.0
 /* Calculation refresh rate */
-#define REFRESH_RATE_SECONDS 2
+#define REFRESH_RATE_SECONDS 0.2
 /* Round start */
 int is_round_started = 0;
 /* For collision calculations */
@@ -45,7 +45,7 @@ int launch_game(int* game_state_memory_ptr){
     float seconds = 5;
     float refresh_rate = REFRESH_RATE_SECONDS;
     clock_t timer;
-    printf("\tPreparing the game with %1.1f seconds refresh rate... ", refresh_rate);
+    printf("\tPreparing the game with refresh rate: %1.2f seconds... ", refresh_rate);
 
     /* ========== LOADING GAME MEMORY ========== */
 
@@ -101,7 +101,7 @@ int launch_game(int* game_state_memory_ptr){
     while (1){
         if ((((double)clock()-timer)/CLOCKS_PER_SEC) >= seconds){
           printf("\t\tTimer: %1.1f seconds... nothing happened\n", seconds); 
-            seconds += refresh_rate;
+            seconds += refresh_rate * 30;
         }
         if (seconds > 2500){
             break;

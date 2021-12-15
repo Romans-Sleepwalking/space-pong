@@ -118,7 +118,7 @@ char printable_char(char c){
 }
 
 /* Prints packet's content in human-readable format */
-void print_Bytes(void* packet, int size){
+void print_packet_bytes(void* packet, int size){
     int i;
     unsigned char* p = (unsigned char*) packet;
     /* If packet size is less than a thousand bytes  */

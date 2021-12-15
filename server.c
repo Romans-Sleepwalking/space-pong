@@ -15,7 +15,7 @@
 /* Global default constants */
 #define DEFAULT_MAX_CLIENTS 4
 #define DEFAULT_HOSTNAME "localhost"
-#define DEFAULT_PORT 6900
+#define DEFAULT_PORT 6969
 #define DEFAULT_SHARED_MEMORY_SIZE 1024
 #define BIGGEST_BUFFER 10000
 #define MAX_CLIENTS 10
@@ -23,12 +23,8 @@
 #define SHARED_MEMORY_SIZE 10000
 #define GAME_STATE_SIZE 10000
 #define MAX_INCOMING_PACKET_SIZE 300
-#define ARRAY_INDEX(array, string_idx) ((array) + (string_idx) * MAX_INCOMING_PACKET_SIZE*2)
+#define ARRAY_INDEX(array, string_idx) ((array) + (string_idx) * MAX_INCOMING_PACKET_SIZE * 2)
 /* Global variables */
-
-void update_game_state();
-int get_writeable_packet_in_buffer( int id);
-
 char* block = NULL;
 char* game_state_block = NULL;
 char* shared_memory = NULL;
@@ -36,7 +32,40 @@ int client_count = 0;
 int* shared_data = NULL;
 int* total_bytes_used = 0;
 char* game_state = NULL;
-char *array_of_client_buffers = NULL;
+char* array_of_client_buffers = NULL;
+
+
+/* Comment */
+int get_writable_packet_in_buffer(int id){
+    char available = ARRAY_INDEX(block, id)[0];
+    char available2 = ARRAY_INDEX(block, id)[MAX_INCOMING_PACKET_SIZE];
+    /* First mode... Comment */
+    if (available == '0'){
+        ARRAY_INDEX(block, id)[0] = '1';
+        return 1;
+    }
+    /* Second mode... Comment */
+    else if (available2 == '0'){
+        ARRAY_INDEX(block, id)[MAX_INCOMING_PACKET_SIZE] = '1';
+        return 2;
+    }
+    /* If packet is unreadable, returns an error */
+    else {
+        printf("Error: game state is undefined! (state: %c)\n", ARRAY_INDEX(block, 0)[0]);
+        return -1;
+    }
+}
+
+/* Updates the game state in memory block */
+void update_game_state(){
+    /* Updates the game state from 1 to 0 */
+    if (ARRAY_INDEX(block, 0)[0] == '1'){
+        ARRAY_INDEX(block, 0)[0] = '0';
+    } else {
+        /* If changing failed, throws an error  */
+        printf("Error: game state is undefined! (state: %c)\n", ARRAY_INDEX(block, 0)[0]);
+    }
+}
 
 /* Gets shared memory */
 void get_shared_memory(){
@@ -103,121 +132,122 @@ void get_shared_memory(){
 
 /* Sends and process client's packets */
 void process_client(int id,int socket){
-   /* int i;
+    int i;
+    int is_parent_proc;
+    char this_packet[MAX_INCOMING_PACKET_SIZE]="ABC";
+    char tmp[BIGGEST_BUFFER]="ABC";
+    int n = 0;
     char in[1];
-    char out[100];
-    int k = 0; */
-    int proccess;
-   char this_packet[MAX_INCOMING_PACKET_SIZE]="ABC";
-  char tmp[BIGGEST_BUFFER]="ABC";
-  int n = 0;
-  int i = 0;
-  char in[1];
-  char prev_was_divider = 0;
-  char in_packet = 0;
-  char escape_mode = 0;
-  int last_packet_id = 0;
-  int mode = 0;
-   printf("Process client works");
-    /* ... */
-    while(1){
-        read(socket,in,1);
-        if(in[0] == '-' && !escape_mode){
-      /* packet ends */
-      if(n<3) {
-        /* Discard silently */
-      } else {
-        if (is_packet(tmp, n, last_packet_id))
-        {
-               mode = get_writeable_packet_in_buffer(id);
-               if(mode == 1)
-               {
-                    /*
-                    printf("\n Address at package receival %p ",&ARRAY_INDEX(array_of_client_buffers, 0)[MAX_INCOMING_PACKET_SIZE]  );
-                    printf("\n Character:  %c \n",ARRAY_INDEX(array_of_client_buffers, 0)[MAX_INCOMING_PACKET_SIZE]  );
-                    */
-                    for(i=0; i<n;i++) 
-                     { 
-                      /* ARRAY_INDEX(array_of_client_buffers, id)[i+1] = tmp[i]; */
-                      ARRAY_INDEX(block, id)[i+1] = tmp[i];
-                     }
-                     /* just in case put 0 after packet */
-                     /*
-                     ARRAY_INDEX(array_of_client_buffers, id)[n+1]=0; */
-                     ARRAY_INDEX(block, id)[n+1]=0;
-                     last_packet_id = get_4_bit_integer(tmp);
-                     printf("Received packet of %d bytes with npk=%d\n",n, last_packet_id);
-                     /*
-                     print_Bytes(&(ARRAY_INDEX(array_of_client_buffers, id)[1]), n);
-                     printf("%c\n",ARRAY_INDEX(array_of_client_buffers, id)[0] ); */
-                      print_Bytes(&(ARRAY_INDEX(block, id)[1]), n);
-                     printf("%c\n",ARRAY_INDEX(block, id)[0] );
+    char prev_was_divider = 0;
+    char in_packet = 0;
+    char escape_mode = 0;
+    int last_packet_id = 0;
+    int mode;
+    /*
+        char in[1];
+        char out[100];
+        int k = 0;
+    */
 
-                }else if(mode == 2)
-                   {
-                       for( i=0; i<n;i++)
-                         {   
-                             /*
-                               ARRAY_INDEX(array_of_client_buffers, id)[i+MAX_INCOMING_PACKET_SIZE+1] = tmp[i]; */
-                               ARRAY_INDEX(block, id)[i+MAX_INCOMING_PACKET_SIZE+1] = tmp[i];
-                         }
-                     /* just in case put 0 after packet */
+    printf("Process client works");
+
+    /* Client processing is an infinite loop until the game ends */
+    while(1){
+        /* Reads the right Linux's "socket file" information */
+        read(socket,in,1);
+        /* Comment */
+        if (in[0] == '-' && !escape_mode){
+            /* If packet ends */
+            if (n < 3){
+                /* Discards silently */
+            } else {
+                /* Verifies if the buffer is a packet */
+                if ( is_packet(tmp, n, last_packet_id) ){
+                    /* Comment */
+                    mode = get_writable_packet_in_buffer(id);
+                    /* Comment */
+                    if (mode == 1){
+                        /*
+                            printf("\n Address at package receival %p ",&ARRAY_INDEX(array_of_client_buffers, 0)[MAX_INCOMING_PACKET_SIZE]  );
+                            printf("\n Character:  %c \n",ARRAY_INDEX(array_of_client_buffers, 0)[MAX_INCOMING_PACKET_SIZE]  );
+                        */
+                        for (i = 0; i < n; i++){
+                           /* ARRAY_INDEX(array_of_client_buffers, id)[i+1] = tmp[i]; */
+                           ARRAY_INDEX(block, id)[i+1] = tmp[i];
+                        }
+                        /* just in case put 0 after packet */
+                        /* ARRAY_INDEX(array_of_client_buffers, id)[n+1]=0; */
+                        ARRAY_INDEX(block, id)[n+1]=0;
+                        last_packet_id = get_4_bit_integer(tmp);
+                        printf("Received packet of %d bytes with npk=%d\n",n, last_packet_id);
+                        /* print_packet_bytes(&(ARRAY_INDEX(array_of_client_buffers, id)[1]), n); */
+                        /* printf("%c\n",ARRAY_INDEX(array_of_client_buffers, id)[0] ); */
+                        print_packet_bytes(&(ARRAY_INDEX(block, id)[1]), n);
+                        printf("%c\n",ARRAY_INDEX(block, id)[0] );
+                    }
+                    /* Comment */
+                    else if (mode == 2){
+                        for (i = 0; i < n; i++){
+                            /* ARRAY_INDEX(array_of_client_buffers, id)[i+MAX_INCOMING_PACKET_SIZE+1] = tmp[i]; */
+                            ARRAY_INDEX(block, id)[i+MAX_INCOMING_PACKET_SIZE+1] = tmp[i];
+                       }
+                       /* just in case put 0 after packet */
                        /* ARRAY_INDEX(array_of_client_buffers, id)[n+MAX_INCOMING_PACKET_SIZE+1]=0; */
                        ARRAY_INDEX(block, id)[n+MAX_INCOMING_PACKET_SIZE+1]=0;
-                        last_packet_id = get_4_bit_integer(tmp);
-                         printf("Received packet of %d bytes with npk=%d\n",n, last_packet_id);
-                         /*
-                         print_Bytes(&(ARRAY_INDEX(array_of_client_buffers, id)[MAX_INCOMING_PACKET_SIZE+1]), n); */
-                       print_Bytes(&(ARRAY_INDEX(block, id)[MAX_INCOMING_PACKET_SIZE+1]), n);
+                       last_packet_id = get_4_bit_integer(tmp);
+                       printf("Received packet of %d bytes with npk=%d\n",n, last_packet_id);
+                       /* print_packet_bytes(&(ARRAY_INDEX(array_of_client_buffers, id)[MAX_INCOMING_PACKET_SIZE+1]), n); */
+                       print_packet_bytes(&(ARRAY_INDEX(block, id)[MAX_INCOMING_PACKET_SIZE+1]), n);
                     }
-                   proccess =  fork();  
-                   if(proccess == 0){
-                       update_game_state();
+                    /*  printf("Char should be 0: %c", ARRAY_INDEX(array_of_client_buffers, id)[0]); */
+
+                    /* Forks child process */
+                    is_parent_proc = fork();
+
+                    /* Child process updates the game state */
+                    if (!is_parent_proc){
+                        update_game_state();
                         exit(0);
-                   }
-                 /*  printf("Char should be 0: %c", ARRAY_INDEX(array_of_client_buffers, id)[0]); */
-        }
-     }  
-           n = 0;
-          in_packet = 0;
-      if(prev_was_divider){
-        in_packet = 1;
-      } else {
-        prev_was_divider = 1;
-      }
-    } else {
-      if(in_packet){
-        prev_was_divider = 0;
-        /* un-escape if needed */
-        if(in[0] == '?'){
-          escape_mode = 1;
-          continue;
-        }
-        if(escape_mode){          
-          escape_mode = 0;
-          if (unescape(in) == 1){
+                    }
+                    /* Parent process continues executing this iteration */
+                }
+            }
             n = 0;
             in_packet = 0;
-            continue;
-          }         
+            if (prev_was_divider){
+                in_packet = 1;
+            } else {
+                prev_was_divider = 1;
+            }
         }
-
-        tmp[n] = in[0];
-        n++;
-      }
-    }
-
-            /* ... 
-            for (i = 0; i < shared_data[DEFAULT_MAX_CLIENTS + id]; i++){
-                sprintf(out,"%c",in[0]);
-                write(socket,out,1);
-            }*/
-            /* ... */
-          
-        
+        else {
+            if (in_packet){
+                prev_was_divider = 0;
+                /* un-escape if needed */
+                if(in[0] == '?'){
+                    escape_mode = 1;
+                    continue;
+                }
+                if(escape_mode){
+                    escape_mode = 0;
+                    if (unescape(in) == 1){
+                    n = 0;
+                    in_packet = 0;
+                    continue;
+                    }
+                }
+                tmp[n] = in[0];
+                n++;
+            }
         }
+        /* ...
+        for (i = 0; i < shared_data[DEFAULT_MAX_CLIENTS + id]; i++){
+        sprintf(out,"%c",in[0]);
+        write(socket,out,1);
+        }*/
+        /* ... */
     }
-
+}
 
 /* Starts network which polls new socket connections */
 int start_polling(char* hostname, int port){
@@ -235,14 +265,13 @@ int start_polling(char* hostname, int port){
 
     /* ========== CREATES SOCKET OBJECT ========== */
 
-
     /* Creates a new socket */
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
+
     if (server_socket >= 0){
         printf("\tServer socket created... ");
-    }
-    /* If creation failed, throws an error  */
-    else {
+    } else {
+        /* If creation failed, throws an error  */
         printf("Error: server socket creation failed!\n");
         return -1;
     }
@@ -254,10 +283,9 @@ int start_polling(char* hostname, int port){
 
     /* Binds the socket to accept incoming connections */
     if (bind(server_socket, (struct sockaddr*) &server_address, sizeof(server_address)) >= 0){
-        printf("Binded... ");
-    }
-    /* If binding failed, throws an error  */
-    else {
+        printf("binded... ");
+    } else {
+        /* If binding failed, throws an error  */
         printf("Error: server socket binding failed!\n");
         return -1;
     }
@@ -266,53 +294,48 @@ int start_polling(char* hostname, int port){
 
     /* Sets the socket to listen for incoming connections */
     if ((listen(server_socket, DEFAULT_MAX_CLIENTS)) >= 0){
-        printf("Is listening!\n");
-    }
-    /* If binding failed, throws an error  */
-    else {
+        printf("is listening!\n");
+    } else {
+        /* If listening failed, throws an error  */
         printf("Error: server socket setting to listening failed!\n");
         return -1;
     }
-    /* Infinitely loops server to listen and react to new clients */
+
+    /* Infinitely loops server for listening and reacting to new clients */
     while(1) {
         /* Refreshes parameters */
         client_socket = 0;
         new_client_id = 0;
-        is_parent_proc = 0;
-        is_child_proc = 0;
         /* Accepts a new client connection */
         if ((client_socket = accept(server_socket, (struct sockaddr*)&client_address, &client_address_size)) >= 0){
-            /* Saves the client's info */
+            /* Assigns the new ID to the accepted client */
             new_client_id = client_count;
-            /* Records stats */
             client_count += 1;
             /* Forks child process */
             is_parent_proc = fork();
-            /* Child process closes the client's socket */
+
             if (!is_parent_proc){
+                /* Child closes the client's socket */
                 close(client_socket);
-            }
-            /* Parent process... */
-            else {
-                /* Closes server socket */
+            } else {
+                /* Parent closes the server socket */
                 close(server_socket);
                 /* Forks grandchild process */
                 is_child_proc = fork();
-                /* TODO: what does the grandchild process? */
+
                 if (!is_child_proc){
+                    /* Grandchild processes client */
+                    process_client(new_client_id,client_socket);
+                    exit(0);
+                } else {
+                    /* Child waits to die due to DOUBLE FORKING */
                     wait(NULL);
                     printf("Succesfully orphaned client %d\n", new_client_id);
                     exit(0);
                 }
-                /* Child process calls func process_client()  */
-                else {
-                    process_client(new_client_id,client_socket);
-                    exit(0);
-                }
             }
-        }
-        /* If error during accepting new client connection occured, throws an error and continues */
-        else {
+        } else {
+            /* If error during accepting new client connection occured, throws an error and continues */
             printf("Error: accepting client connection failed! ERRNO=%d\n",errno);
             continue;
         }
@@ -321,45 +344,60 @@ int start_polling(char* hostname, int port){
 
 
 int main(int argc, char** argv){
-    int i;
     /* Assigns default values to server connection info */
     char* server_hostname = DEFAULT_HOSTNAME;
     int server_port = DEFAULT_PORT;
     /* Process forking status */
-    int is_parent_proc = 0;
+    int is_parent_proc;
 
     /* ========== READS SERVER'S CONNECTION INFO ========== */
 
-    printf("\tReading connection parameters...");
+    printf("\tReading connection parameters... ");
     server_hostname = read_param_value(argc, argv, 'h');
     server_port = atoi(read_param_value(argc, argv, 'p'));
-    printf("hostname=\"%s\"; port=%d\n", server_hostname, server_port);
+    printf("hostname=\"%s\", port=%d!\n", server_hostname, server_port);
 
     /* ========== ALLOCATES MEMORY FOR SERVER'S NEEDS ========== */
 
     int requested_mem_size = DEFAULT_SHARED_MEMORY_SIZE;
-    /*ja vajadzēs vairāk atmiņu packetos vai gamestate tad varēs palielināt memory size no 1024 */
+    /* ja vajadzēs vairāk atmiņu packetos vai gamestate tad varēs palielināt memory size no 1024 */
     int* memory_block = malloc(requested_mem_size * sizeof(int));
-    /*pagaidam game state buus 512 baitus liels memory */
+    /* pagaidam game state būs 512 baitus liels memory */
     int* game_state_partition = (int*)(memory_block +sizeof(int)*requested_mem_size/2);
 
-    /* memory block struktūra:
-    first_client input(128 baiti) ->  second_client input(128 baiti) -> third_client input(128 baiti) -> fourth_client input(128 baiti) -> gamestate_client input(512 baiti)
-     */
-    /* pagaidam katram clientam bus 128 baiti */
-    int* first_client_input = (int*)memory_block;
-    int* second_client_input = (int*)(first_client_input +sizeof(int)*requested_mem_size/8);
-    int* third_client_input = (int*)(second_client_input +sizeof(int)*requested_mem_size/8);
-    int* fourth_client_input = (int*)(third_client_input +sizeof(int)*requested_mem_size/8);
+    /*
+        memory block struktūra:
+            first_client input(128 baiti) ->
+              second_client input(128 baiti) ->
+                third_client input(128 baiti) ->
+                  fourth_client input(128 baiti) ->
+                    gamestate_client input(512 baiti)
+    */
 
-    /* Katram clientam inputam pirmais baits noradis 0 vai 1 , 0 nozime ka packetā var rakstīt, 1 nozīmēs ka packetā nevar rakstīt, jo to sākumā ir jānolasa gameupdeitotajam */
+    /* pagaidam katram clientam būs 128 baiti */
+    int* first_client_input = (int*)memory_block;
+    int* second_client_input = (int*)(first_client_input + sizeof(int)*requested_mem_size/8);
+    int* third_client_input = (int*)(second_client_input + sizeof(int)*requested_mem_size/8);
+    int* fourth_client_input = (int*)(third_client_input + sizeof(int)*requested_mem_size/8);
+
+    /*
+        Katram clientam inputam pirmais baits noradis 0 vai 1:
+            0 nozime ka packetā var rakstīt,
+            1 nozīmēs ka packetā nevar rakstīt, jo to sākumā ir jānolasa gameupdeitotajam
+    */
+
     *first_client_input = 0;
     *second_client_input = 0;
     *third_client_input = 0;
     *fourth_client_input = 0;
-    /* talak lai atrastu packeta info vajadzes first_client_packet = (*int)(first_client +sizeof(int) )
-    vai ari vares izmantot client id un tad vares accessot katru:  client_packet = (*int)(memory_block +sizeof(int)*requested_mem_size/8*id)
+
+    /*
+        talak lai atrastu packeta info vajadzes:
+            first_client_packet = (*int)( first_client +sizeof(int) )
+        vai ari vares izmantot client id un tad vares accessot katru:
+            client_packet = (*int)(memory_block + sizeof(int) * requested_mem_size/8 * id)
     */
+
     get_shared_memory();
 
     /* ========== RUNS THE SERVER ========== */
@@ -368,40 +406,13 @@ int main(int argc, char** argv){
   
     /* Forks child process */
     is_parent_proc = fork();
-    /* Parent process starts the game */
-    if (is_parent_proc == 0){
+
+    if (!is_parent_proc){
+        /* Parent process starts the game */
         launch_game(game_state_partition);
-    }
-    /* Child process starts server polling function */
-    else {
+    } else {
+        /* Child process starts server polling function */
         start_polling(server_hostname, server_port);
     }
     return 0;
-}
-
-
-/* ------------------------------------------------------------------ */
-
-/* TODO */
-int get_writeable_packet_in_buffer(int id){
-    char available = ARRAY_INDEX(block, id)[0];
-    char available2 = ARRAY_INDEX(block, id)[MAX_INCOMING_PACKET_SIZE];
-    /* ... */
-    if (available == '0'){
-        ARRAY_INDEX(block, id)[0] = '1';
-        return 1;
-    }
-    else if (available2 == '0'){
-        ARRAY_INDEX(block, id)[MAX_INCOMING_PACKET_SIZE] = '1';
-        return 2;
-    }
-    return -1;
-}
-
-/* TODO */
-void update_game_state(){
-    if (ARRAY_INDEX(block, 0)[0] == '1'){
-        /* Janolasa packets un jaupdateo gamestate  */
-        ARRAY_INDEX(block, 0)[0] = '0';
-    }
 }

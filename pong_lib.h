@@ -1,12 +1,10 @@
 #ifndef _PONG_LIB_H
 #define _PONG_LIB_H
 
+    /* Boolean logic library */
     #include <stdbool.h>
-    /* Direction constants */
-    #define UP 1
-    #define DOWN -1
+    /* Very global constant */
     #define FILENAME "server.c"
-
 
     /* ===== utility_lib.c ===== */
 
@@ -21,7 +19,7 @@
     int get_4_bit_integer(void * addr);
     void put_4_bit_integer(int data, void* addr);
     char printable_char(char c);
-    void print_Bytes(void* packet, int size);
+    void print_packet_bytes(void* packet, int size);
     char calculate_checksum(char* buffer, int n);
     int is_packet(char* buffer, int n, int last_id);
     /* Memory Block Operations */

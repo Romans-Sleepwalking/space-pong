@@ -13,7 +13,7 @@
 
 /* Default connection parameters */
 #define DEFAULT_HOSTNAME "localhost"
-#define DEFAULT_PORT 6900
+#define DEFAULT_PORT 6969
 /* GUI window parameters */
 #define WINDOW_WIDTH 1600
 #define WINDOW_HEIGHT 800
@@ -152,8 +152,8 @@ int main(int argc, char** argv){
     char* package6 = createPackage6(1, 2);
     char* package8 = createPackage8(4, 3);
            /*  printf("Package1: %s\n", package); */
-               print_Bytes(package6, 15);
-                print_Bytes(package8, 15);
+               print_packet_bytes(package6, 15);
+                print_packet_bytes(package8, 15);
     int i;
     /* Assigns default values to client connection info */
     char* client_address = DEFAULT_HOSTNAME;
