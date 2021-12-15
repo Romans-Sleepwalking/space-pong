@@ -28,10 +28,6 @@
 
 void update_game_state();
 int get_writeable_packet_in_buffer( int id);
-void print_Bytes(void* packet, int count);
-
-
-
 
 char* block = NULL;
 char* game_state_block = NULL;
@@ -44,18 +40,22 @@ char *array_of_client_buffers = NULL;
 
 /* Gets shared memory */
 void get_shared_memory(){
+    int i;
     /* Packet shared memory  */
-   block = attach_memory_block(FILENAME, MAX_INCOMING_PACKET_SIZE*2*10);
-   if(block == NULL){
-       printf("Memory could not be allocated\n");
-   }
+    block = attach_memory_block(FILENAME, MAX_INCOMING_PACKET_SIZE*2*10);
+    /* Checks if comment */
+    if (block == NULL){
+       printf("Error: Memory could not be allocated!\n");
+       return -1;
+    }
+    /* comment */
     array_of_client_buffers = (char*)calloc(MAX_CLIENTS, MAX_INCOMING_PACKET_SIZE*2);
-
-     int i;
+    /* comment */
     for( i=0; i<MAX_CLIENTS; i++){
      ARRAY_INDEX(array_of_client_buffers, i)[0] = '0';
      ARRAY_INDEX(array_of_client_buffers, i)[MAX_INCOMING_PACKET_SIZE] = '0';
-      } 
+      }
+    /* comment */
       strncpy(block, array_of_client_buffers, MAX_INCOMING_PACKET_SIZE*2*10);
     /* Game state shared memory*/
     /* MAX clients = 10 therefore memory will be requested for five teams */
@@ -127,7 +127,7 @@ void process_client(int id,int socket){
       if(n<3) {
         /* Discard silently */
       } else {
-        if(packet_is_ok(tmp, n, last_packet_id))
+        if (is_packet(tmp, n, last_packet_id))
         {
                mode = get_writeable_packet_in_buffer(id);
                if(mode == 1)
@@ -195,7 +195,7 @@ void process_client(int id,int socket){
         }
         if(escape_mode){          
           escape_mode = 0;
-          if(unescape(in) == 1){
+          if (unescape(in) == 1){
             n = 0;
             in_packet = 0;
             continue;
@@ -371,117 +371,37 @@ int main(int argc, char** argv){
     /* Parent process starts the game */
     if (is_parent_proc == 0){
         launch_game(game_state_partition);
-    } else {
-            /* Child process calls the start server polling function */
-           start_polling(server_hostname, server_port);
-        }
-    
+    }
+    /* Child process starts server polling function */
+    else {
+        start_polling(server_hostname, server_port);
+    }
     return 0;
 }
 
 
 /* ------------------------------------------------------------------ */
 
-
-char calculate_checksum(char* buffer, int n){
-  int i;
-  char res=0;
-  for(i = 0; i<n; i++){
-    res ^= buffer[i];
-  }
-  return res;
-}
-
-int unescape(char* ch){
-  /* printf("Un-escaping!\n"); */
-  if(ch[0] == '-') ch[0] = '-';
-  else if(ch[0] == '*') ch[0] = '?';
-  else return 1;
-  return 0;
-}
-
-int get_4_bit_integer(void * addr){
-  return ntohl(*((int*)addr));
-}
-
-void put_4_bit_integer(int data, void* addr){
-  int* destination = addr;
-  *destination = htonl(data);
-}
-
-int packet_is_ok(char* buffer, int n, int last_id){
-  int new_id = 0;
-  int length = 0;
-  unsigned char goal_checksum = (unsigned char) buffer[n-1];
-  unsigned char current_checksum = 0;
-  /* ID either 0 or bigger than previous? */
-  new_id = get_4_bit_integer(buffer);
-  if(new_id>0 && new_id<=last_id){
-    printf("Received packet out of order! Last ID = %d, received %d\n", last_id, new_id);
-    return 0;
-  }
-  /* Data length ok? */
-  length = get_4_bit_integer(buffer+5);
-
-
-  /* checksum ok? */
-  current_checksum = (unsigned char) calculate_checksum(buffer, n-1);
-  if(current_checksum != goal_checksum){
-    printf("Packet chekchsum failed! received = %d, calculated %d\n", goal_checksum, current_checksum);
-    return 0;
-  }
-  return 1;
-}
-
-
-char printable_char(char c){
-    if(isprint(c)) return c;
-    return '#';
-}
-
-void print_Bytes(void* packet, int count){
-    int i;
-    unsigned char* p = (unsigned char*) packet;
-    if(count>999){
-        printf("Cannot print more than 999 bytes! You asked for %d\n",count);
-        return;
-    }
-    printf("Printing %d bytes...\n",count);
-    printf("[NPK] [C] [HEX] [DEC] [ BINARY ]\n");
-    printf("================================\n");
-    for(i=0;i<count;i++){
-        printf(" %3d | %c | %02X | %3d | %c%c%c%c%c%c%c%c\n",i,printable_char(p[i]),p[i],p[i],
-        p[i] & 0x80 ? '1':'0',
-        p[i] & 0x40 ? '1':'0',
-        p[i] & 0x20 ? '1':'0',
-        p[i] & 0x10 ? '1':'0',
-        p[i] & 0x08 ? '1':'0',
-        p[i] & 0x04 ? '1':'0',
-        p[i] & 0x02 ? '1':'0',
-        p[i] & 0x01 ? '1':'0'
-        );
-    }
-}
+/* TODO */
 int get_writeable_packet_in_buffer(int id){
-char available = ARRAY_INDEX(block, id)[0];
-char available2 = ARRAY_INDEX(block, id)[MAX_INCOMING_PACKET_SIZE];
-
-    if(available == '0'){
-   ARRAY_INDEX(block, id)[0] = '1';
-   return 1;
- }else if(available2 == '0'){
-
-  ARRAY_INDEX(block, id)[MAX_INCOMING_PACKET_SIZE] = '1';
-      return 2;
- }
-     return -1; 
+    char available = ARRAY_INDEX(block, id)[0];
+    char available2 = ARRAY_INDEX(block, id)[MAX_INCOMING_PACKET_SIZE];
+    /* ... */
+    if (available == '0'){
+        ARRAY_INDEX(block, id)[0] = '1';
+        return 1;
+    }
+    else if (available2 == '0'){
+        ARRAY_INDEX(block, id)[MAX_INCOMING_PACKET_SIZE] = '1';
+        return 2;
+    }
+    return -1;
 }
+
+/* TODO */
 void update_game_state(){
-      if(ARRAY_INDEX(block, 0)[0] == '1'){
-          /* Janolasa packets un jaupdateo gamestate  */
-             ARRAY_INDEX(block, 0)[0] = '0';
-      }
+    if (ARRAY_INDEX(block, 0)[0] == '1'){
+        /* Janolasa packets un jaupdateo gamestate  */
+        ARRAY_INDEX(block, 0)[0] = '0';
+    }
 }
-
-
-

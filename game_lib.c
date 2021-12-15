@@ -31,7 +31,7 @@
 #define DEFAULT_R_PADDLE_CX 75.0
 #define DEFAULT_R_PADDLE_CY 25.0
 /* Calculation refresh rate */
-#define REFRESH_RATE_SECONDS 0.2
+#define REFRESH_RATE_SECONDS 2
 /* Round start */
 int is_round_started = 0;
 /* For collision calculations */

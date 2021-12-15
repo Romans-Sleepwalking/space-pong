@@ -60,16 +60,13 @@ double r_paddle_cx = 74.5;
 double r_paddle_cy = 25.0;
 double l_paddle_cx = 4.5;
 double l_paddle_cy = 15.0;
-char printable_char(char c);
 
 char* createPackage1(int id, char* data_segment, int package_number);
 char* createPackage3(char* data_segment, int package_number);
 char* createPackage6(char client_id, int package_number);
 char* createPackage8(char key_press, int package_number);
 
-char calculate_checksum(char* buffer, int n);
-int get_4_bit_integer(void * addr);
-void print_Bytes(void* packet, int count);
+
 /* Initializes grid and memory */
 void direct_copy_data_as_bytes(void* packet, void* data, int size){
   int i;
@@ -288,29 +285,6 @@ int main(int argc, char** argv){
 }
 
 
-void print_Bytes(void* packet, int count){
-    int i;
-    unsigned char* p = (unsigned char*) packet;
-    if(count>999){
-        printf("Cannot print more than 999 bytes! You asked for %d\n",count);
-        return;
-    }
-    printf("Printing %d bytes...\n",count);
-    printf("[NPK] [C] [HEX] [DEC] [ BINARY ]\n");
-    printf("================================\n");
-    for(i=0;i<count;i++){
-        printf(" %3d | %c | %02X | %3d | %c%c%c%c%c%c%c%c\n",i,printable_char(p[i]),p[i],p[i],
-        p[i] & 0x80 ? '1':'0',
-        p[i] & 0x40 ? '1':'0',
-        p[i] & 0x20 ? '1':'0',
-        p[i] & 0x10 ? '1':'0',
-        p[i] & 0x08 ? '1':'0',
-        p[i] & 0x04 ? '1':'0',
-        p[i] & 0x02 ? '1':'0',
-        p[i] & 0x01 ? '1':'0'
-        );
-    }
-}
 char* createPackage1(int pack_id, char* data_segment, int package_number){
      unsigned int number2 = htonl(package_number);
      char packageNumberString[4];
@@ -464,20 +438,4 @@ char* createPackage8(char key_press, int package_number){
               package[12] = checksum;
 
      return package;
-}
-int get_4_bit_integer(void * addr){
-  return ntohl(*((int*)addr));
-}
-
-char calculate_checksum(char* buffer, int n){
-  int i;
-  char res=0;
-  for(i = 0; i<n; i++){
-    res ^= buffer[i];
-  }
-  return res;
-}
-char printable_char(char c){
-    if(isprint(c)) return c;
-    return '#';
 }

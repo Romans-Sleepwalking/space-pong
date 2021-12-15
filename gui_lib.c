@@ -90,7 +90,6 @@ void drawGrid(){
 
 void drawText() {
     /* TODO */
-
 }
 
 void drawPaddles(){
