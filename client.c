@@ -68,7 +68,7 @@ char* createPackage1(int id, char* data_segment, int package_number);
 char* createPackage3(char* data_segment, int package_number);
 char* createPackage6(char client_id, int package_number);
 char* createPackage8(char key_press, int package_number);
-
+void update_game(char *packet, int pack_number);
 /* Initializes grid and memory */
 void direct_copy_data_as_bytes(void* packet, void* data, int size){
   int i;
@@ -153,9 +153,10 @@ int main(int argc, char** argv){
     char* package3 = createPackage3("TThis is the message", 1 );
     char* package6 = createPackage6(1, 2);
     char* package8 = createPackage8(4, 3);
-           /*  printf("Package1: %s\n", package); */
-               print_packet_bytes(package6, 15);
-                print_packet_bytes(package8, 15);
+           /*  printf("Package1: %s\n", package);    
+             print_packet_bytes(package6, 15);
+                print_packet_bytes(package8, 15); */
+
     int i;
     /* Assigns default values to client connection info */
     char* client_address = DEFAULT_HOSTNAME;
@@ -280,15 +281,94 @@ int main(int argc, char** argv){
         /* Infinite loop puts server messages if received */
         /* te sakas kur varetu but errori */
       /*  while(read(client_socket,in,1)){ */
+     int i;
+    int is_parent_proc;
+    char this_packet[MAX_INCOMING_PACKET_SIZE]="ABC";
+    char tmp[BIGGEST_BUFFER]="ABC";
+    int n = 0;
+    char in[1];
+    char prev_was_divider = 0;
+    char in_packet = 0;
+    char escape_mode = 0;
+    int last_packet_id = 0;
       while(1){
-     if (recv(client_socket, server_reply , 6000 , 0) > 0){
-        
-              puts(server_reply); 
+     if (recv(client_socket, server_reply , MAX_INCOMING_PACKET_SIZE , 0) > 0){
+       int i;
+         
+       for(i = 0; i<MAX_INCOMING_PACKET_SIZE+1; i++){
+          /* ----------------------------------------------------- */
+           in[0] = server_reply[i];
+         if (in[0] == '-' && !escape_mode){
+            /* If packet ends */
+            if (n < 3){
+                /* Discards silently */
+            } else {
+                /* Verifies if the buffer is a packet */
+     
+                if ( is_packet(tmp, n, last_packet_id) ){
+                    /* Comment */
+                    /*  */
+                      
+                        last_packet_id = get_4_bit_integer(tmp); 
+                       int packet_identifier = tmp[4];
+                       update_game(tmp, packet_identifier);
+                      /*  char packet_identifier = ntohl(*((char*)tmp+4) ); */
+                        printf("Incoming package number is: %d\n", packet_identifier );
+                        printf("Received packet of %d bytes with npk=%d\n",n, last_packet_id);
+                        /* print_packet_bytes(&(ARRAY_INDEX(array_of_client_buffers, id)[1]), n); */
+                        /* printf("%c\n",ARRAY_INDEX(array_of_client_buffers, id)[0] ); */
+                        print_packet_bytes(tmp, n);
 
+                    }
+
+                    /* Forks child process 
+                    is_parent_proc = fork();
+
+                    /* Child process updates the game state
+                    if (!is_parent_proc){
+                        update_game_state();
+                        exit(0);
+                    }
+                    /* Parent process continues executing this iteration */
+                }
+           /* } */
+            n = 0;
+            in_packet = 0;
+            if (prev_was_divider){
+                in_packet = 1;
+            } else {
+                prev_was_divider = 1;
+            }
+        } else {
+            if (in_packet){
+                prev_was_divider = 0;
+                /* un-escape if needed */
+                if(in[0] == '?'){
+                    escape_mode = 1;
+                    continue;
+                }
+                if(escape_mode){
+                    escape_mode = 0;
+                    if (unescape(in) == 1){
+                    n = 0;
+                    in_packet = 0;
+                    continue;
+                    }
+                }
+              
+                tmp[n] = in[0];
+                n++;
+            }
+        }
+          /*-----------------------------------------------------------  print_packet_bytes(in[0], 1);*/
+       }
+               
+            /*  puts(server_reply); */
             }
         }
     }
 }
+
 
 
 char* createPackage1(int pack_id, char* data_segment, int package_number){
@@ -419,4 +499,26 @@ char* createPackage8(char key_press, int package_number){
               package[12] = checksum;
 
      return package;
+}
+void update_game(char *packet, int pack_number){
+   if(pack_number == 2){
+     /* Do second packet reading */
+   }else if(pack_number == 7 ){
+    /* Receiving gamestate packet */
+     int window_width = get_4_bit_integer(packet+9);
+     int window_height = get_4_bit_integer(packet+13);
+     int team_cnt = packet[17];
+     int i;
+     int team_ids[team_cnt];
+     for(i=0; i < team_cnt; i++){
+        printf("Team: %d\n", i);
+        
+     }
+
+   }else if(pack_number == 5 ){
+    /* Game ready */
+    
+      
+   }
+
 }

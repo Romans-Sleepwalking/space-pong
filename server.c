@@ -29,7 +29,7 @@
 
 /* Predefined example packets for tests (integers in BIG endian (Network byte order)) */
 /* P2  ACCEPT        DIV     NPK      P  SIZE      DATA  maybe checksum not 4                                            CS   DIV      */
-char pack2[15] =   {'-','-', 0,0,0,0, 2, 0,0,0,1,  1,    4, '-','-'};
+char pack2[15] =   {'-','-', 0,0,0,0, 2, 0,0,0,1,  1,    2, '-','-'};
 /* P3  MESSAGE     DIV      NPK      P  SIZE      DATA                                             CS   DIV      */
 char pack3[272] = {'-','-', 0,0,0,1, 3, 0,0,1,2, /* TA  S  MESSAGE */
                                                    -1, 0, 'T','h','i','s',' ','i','s',' ','m','e','s','s','a','g','e','!',0,0,0,0,0,0,0,0,0,
@@ -50,7 +50,7 @@ char pack4[99] = {'-','-', 0,0,0,2, 4, 0,0,0,0,/* player count  Id  Player name 
                                                                  3, 'N','a','me','e','2',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
                                                                                               /*  CS?   DIV       */
 /* Game ready  202?*/                                                                                                  1, '-','-'};
-char pack5[400] = {'-','-', 0,0,0,3, 5, 0,0,0,0, /* wind width    wind height  team cnt                   */
+char pack5[205] = {'-','-', 0,0,0,3, 5, 0,0,0,0, /* wind width    wind height  team cnt                   */
                                                     0,0,0,0       ,0,0,0,0    ,2,
                                                                             /* id    goal xCor   goal Ycoor    en goal X    en goal Y*/    
                                                         /*X team count */      0,     0,0,0,0,     0,0,0,0,    0,0,0,0,     0,0,0,0,
@@ -66,7 +66,7 @@ char pack5[400] = {'-','-', 0,0,0,3, 5, 0,0,0,0, /* wind width    wind height  t
                                                                                               /*  CS   DIV       */
                                                                                                   1, '-','-'};
 /* Game state*/                                                                                              
-char pack6[159] = {'-','-', 0,0,0,3, 5, 0,0,0,0, /* wind width    wind height  team cnt  */
+char pack7[159] = {'-','-', 0,0,0,3, 7, 0,0,0,0, /* wind width    wind height  team cnt  */
                                                     0,0,0,0       ,0,0,0,0    ,2,
                                                                             /* id    goal xCor   goal Ycoor    en goal X    en goal Y*/    
                                                         /*X team count */      0,     0,0,0,0,     0,0,0,0,    0,0,0,0,     0,0,0,0,
@@ -87,7 +87,6 @@ char pack6[159] = {'-','-', 0,0,0,3, 5, 0,0,0,0, /* wind width    wind height  t
 
 void update_game_state();
 int get_writeable_packet_in_buffer( int id);
-void print_Bytes(void* packet, int count);
 
 char* createPackage2(char status, int package_number);
 char* createPackage3(char* data_segment, int package_number);
@@ -338,12 +337,15 @@ void process_client(int id,int socket){
     }
 
 
-void send_player_input(int id, int client_socket){
-  /* piemers ka sutit package */
-  char* package2 = createPackage2(4, 0);
-  send(client_socket, package2, 15, 0);
 }
 
+void send_player_input(int id, int client_socket){
+  /* piemers ka sutit package */
+   char* package =NULL;    
+   /*package7 = pack7; */
+   package = pack3;
+  write(client_socket, package, 272 );
+  /*send(client_socket, package2, 15, 0); */
 }
 /* Starts network which polls new socket connections */
 int start_polling(char* hostname, int port){
@@ -421,6 +423,7 @@ int start_polling(char* hostname, int port){
 
                 if (!is_child_proc){
                     /* Grandchild processes client */
+                    send_player_input(new_client_id, client_socket);
                     process_client(new_client_id,client_socket);
                     exit(0);
                 } else {
@@ -501,13 +504,12 @@ int main(int argc, char** argv){
     get_shared_memory();
 
 
-  /* Testing printable packages */
+  /* Testing printable packages
     char* package2 = createPackage2(4, 0);
-       print_Bytes(package2, 15);
-     char* package4 = createPackage4(1);
-     print_Bytes(package4, 99);
- 
 
+     char* package4 = createPackage4(1);
+
+ 
     /* ========== RUNS THE SERVER ========== */
 
     printf("\tRunning space-pong server...\n");
@@ -555,31 +557,6 @@ int packet_is_ok(char* buffer, int n, int last_id){
   return 1;
 }
 
-
-void print_Bytes(void* packet, int count){
-    int i;
-    unsigned char* p = (unsigned char*) packet;
-    if(count>999){
-        printf("Cannot print more than 999 bytes! You asked for %d\n",count);
-        return;
-    }
-    printf("Printing %d bytes...\n",count);
-    printf("[NPK] [C] [HEX] [DEC] [ BINARY ]\n");
-    printf("================================\n");
-    for(i=0;i<count;i++){
-        printf(" %3d | %c | %02X | %3d | %c%c%c%c%c%c%c%c\n",i,printable_char(p[i]),p[i],p[i],
-        p[i] & 0x80 ? '1':'0',
-        p[i] & 0x40 ? '1':'0',
-        p[i] & 0x20 ? '1':'0',
-        p[i] & 0x10 ? '1':'0',
-        p[i] & 0x08 ? '1':'0',
-        p[i] & 0x04 ? '1':'0',
-        p[i] & 0x02 ? '1':'0',
-        p[i] & 0x01 ? '1':'0'
-        );
-    }
-    return 0;
-}
 int get_writeable_packet_in_buffer(int id){
 char available = ARRAY_INDEX(block, id)[0];
 char available2 = ARRAY_INDEX(block, id)[MAX_INCOMING_PACKET_SIZE];
