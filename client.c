@@ -14,6 +14,8 @@
 /* Default connection parameters */
 #define DEFAULT_HOSTNAME "localhost"
 #define DEFAULT_PORT 6900
+#define MAX_INCOMING_PACKET_SIZE 300
+#define BIGGEST_BUFFER 10000
 /* GUI window parameters */
 #define WINDOW_WIDTH 1600
 #define WINDOW_HEIGHT 800
@@ -66,6 +68,29 @@ char* createPackage1(int id, char* data_segment, int package_number);
 char* createPackage3(char* data_segment, int package_number);
 char* createPackage6(char client_id, int package_number);
 char* createPackage8(char key_press, int package_number);
+
+int unescape(char* ch){
+  /* printf("Un-escaping!\n"); */
+  if(ch[0] == '-') ch[0] = '-';
+  else if(ch[0] == '*') ch[0] = '?';
+  else return 1;
+  return 0;
+}
+
+
+int packet_is_ok(char* buffer, int n, int last_id){
+  int new_id = 0;
+  int length = 0;
+  unsigned char goal_checksum = (unsigned char) buffer[n-1];
+  unsigned char current_checksum = 0;
+  /* ID either 0 or bigger than previous? */
+  new_id = get_4_bit_integer(buffer);
+  if(new_id>0 && new_id<=last_id){
+    printf("Received packet out of order! Last ID = %d, received %d\n", last_id, new_id);
+    return 0;
+  }
+}
+
 
 char calculate_checksum(char* buffer, int n);
 int get_4_bit_integer(void * addr);
@@ -279,9 +304,65 @@ int main(int argc, char** argv){
     /* Parent process listens for server messages */
     else {
         /* Infinite loop puts server messages if received */
-        while(1){
-            if (recv(client_socket, server_reply , 6000 , 0) > 0){
-                puts(server_reply);
+        /* te sakas kur varetu but errori */
+  int proccess;
+  char this_packet[MAX_INCOMING_PACKET_SIZE]="ABC";
+  char tmp[BIGGEST_BUFFER]="ABC";
+  int n = 0;
+  int i = 0;
+  char in[1];
+  char prev_was_divider = 0;
+  char in_packet = 0;
+  char escape_mode = 0;
+  int last_packet_id = 0;
+  int mode = 0; 
+      /*  while(read(client_socket,in,1)){ */
+      while(1){
+     if (recv(client_socket, server_reply , 6000 , 0) > 0){
+         int i = 0;
+         for(i; i< 6000; i++){
+          in[0] = server_reply[i];
+         /*   read(client_socket,in,1); */
+        if(in[0] == '-' && !escape_mode){
+      /* packet ends */
+      if(n<3) {
+        /* Discard silently */
+      } else {
+        if(packet_is_ok(tmp, n, last_packet_id))
+        {
+              print_Bytes(tmp, n);
+        }
+     }  
+           n = 0;
+          in_packet = 0;
+      if(prev_was_divider){
+        in_packet = 1;
+      } else {
+        prev_was_divider = 1;
+      }
+    } else {
+      if(in_packet){
+        prev_was_divider = 0;
+        /* un-escape if needed */
+        if(in[0] == '?'){
+          escape_mode = 1;
+          continue;
+        }
+        if(escape_mode){          
+          escape_mode = 0;
+          if(unescape(in) == 1){
+            n = 0;
+            in_packet = 0;
+            continue;
+          }         
+        }
+
+        tmp[n] = in[0];
+        n++;
+      }
+    }
+              /*  puts(server_reply); */
+                   }
             }
         }
     }
@@ -349,31 +430,6 @@ char* createPackage1(int pack_id, char* data_segment, int package_number){
               checksum = (unsigned char) calculate_checksum(package+2, 28);
               package[i] = checksum;
              
-           }
-           if(pack_id == 3){
-              package = pack3;
-               int i = 2;
-               int posNum = i+4;
-                 /* Adding package number */
-               for(i = 2; i<posNum; i++){
-                   package[i] = packageNumberString[i-2];
-               }  
-                /* Adding message to package */
-               i= 13;
-               while(data_segment[i-13] != '\0'){
-                 package[i] = data_segment[i-13];
-                 i++;
-               }
-               /* Adding 0 in the remaining data segment */
-               for(i; i<31; i++){
-                   package[i] = 0;
-               }
-
-              /* Calculating and adding checksum */
-               package[i] = 0;
-              checksum = (unsigned char) calculate_checksum(package+2, 28);
-              package[i] = checksum;
-
            }
      return package;
 }

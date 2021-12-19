@@ -26,12 +26,80 @@
 #define ARRAY_INDEX(array, string_idx) ((array) + (string_idx) * MAX_INCOMING_PACKET_SIZE*2)
 /* Global variables */
 
+
+/* Predefined example packets for tests (integers in BIG endian (Network byte order)) */
+/* P2  ACCEPT        DIV     NPK      P  SIZE      DATA  maybe checksum not 4                                            CS   DIV      */
+char pack2[15] =   {'-','-', 0,0,0,0, 2, 0,0,0,1,  1,    4, '-','-'};
+/* P3  MESSAGE     DIV      NPK      P  SIZE      DATA                                             CS   DIV      */
+char pack3[272] = {'-','-', 0,0,0,1, 3, 0,0,1,2, /* TA  S  MESSAGE */
+                                                   -1, 0, 'T','h','i','s',' ','i','s',' ','m','e','s','s','a','g','e','!',0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,         /*  CS   DIV       */
+                                                          0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 136, '-','-'};
+/* P4  LOBBY         DIV      NPK    P   SIZE= 1+N*21   DATA          */
+char pack4[99] = {'-','-', 0,0,0,2, 4, 0,0,0,0,/* player count  Id  Player name                        */
+                                                      1,         0, 'N','a','me','e','1',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                                 1, 'N','a','me','e','2',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                                 2, 'N','a','me','e','1',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                                 3, 'N','a','me','e','2',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                                                              /*  CS?   DIV       */
+/* Game ready */                                                                                                  1, '-','-'};
+char pack5[202] = {'-','-', 0,0,0,3, 5, 0,0,0,0, /* wind width    wind height  team cnt                   */
+                                                    0,0,0,0       ,0,0,0,0    ,2,
+                                                                            /* id    goal xCor   goal Ycoor    en goal X    en goal Y*/    
+                                                        /*X team count */      0,     0,0,0,0,     0,0,0,0,    0,0,0,0,     0,0,0,0,
+                                                                               1,     0,0,0,0,     0,0,0,0,    0,0,0,0,     0,0,0,0,
+                                                                            /* Player cnt*/  
+                                                                               4,     
+                                                                            /* pl id  ready   team id  name                                             xCoor      Ycoor    width    height*/ 
+                                                    /* reiz player cnt */      0,      0,      0,  'N','a','me','e','1',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0, 0,0,0,0,
+                                                                               1,      0,      0,  'N','a','me','e','2',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0, 0,0,0,0,
+                                                                               2,      0,      1,  'N','a','me','e','3',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0, 0,0,0,0,
+                                                                               3,      0,      1,  'N','a','me','e','4',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0, 0,0,0,0,
+                                                                              
+                                                                                              /*  CS   DIV       */
+                                                                                                  1, '-','-'};
+/* Game state*/                                                                                              
+char pack6[159] = {'-','-', 0,0,0,3, 5, 0,0,0,0, /* wind width    wind height  team cnt  */
+                                                    0,0,0,0       ,0,0,0,0    ,2,
+                                                                            /* id    goal xCor   goal Ycoor    en goal X    en goal Y*/    
+                                                        /*X team count */      0,     0,0,0,0,     0,0,0,0,    0,0,0,0,     0,0,0,0,
+                                                                               1,     0,0,0,0,     0,0,0,0,    0,0,0,0,     0,0,0,0,
+                                                                            /* Player cnt*/  
+                                                                               4,     
+                                                                            /* pl id  team id       xCoor      Ycoor    width    height*/ 
+                                                    /* reiz player cnt */      0,      0,          0,0,0,0,  0,0,0,0,  0,0,0,0, 0,0,0,0,
+                                                                               1,      0,          0,0,0,0,  0,0,0,0,  0,0,0,0, 0,0,0,0,
+                                                                               2,      1,          0,0,0,0,  0,0,0,0,  0,0,0,0, 0,0,0,0,
+                                                                               3,      1,          0,0,0,0,  0,0,0,0,  0,0,0,0, 0,0,0,0,
+                                                                            /* ball cnt  X            Y       Radius    Type*/
+                                                                               1,        0,0,0,0,  0,0,0,0,  0,0,0,0,    0,
+                                                                        /* powerUp cnt  Type  X         Y         Width     Height*/
+                                                                               1,        0,   0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0,
+                                                                                              /*  CS   DIV       */
+                                                                                                  1, '-','-'};
+
 void update_game_state();
 int get_writeable_packet_in_buffer( int id);
 void print_Bytes(void* packet, int count);
+char calculate_checksum(char* buffer, int n){
+  int i;
+  char res=0;
+  for(i = 0; i<n; i++){
+    res ^= buffer[i];
+  }
+  return res;
+}
 
-
-
+char* createPackage2(char status, int package_number);
+char* createPackage3(char* data_segment, int package_number);
+char* createPackage4( int package_number);
 
 char* block = NULL;
 char* game_state_block = NULL;
@@ -41,7 +109,13 @@ int* shared_data = NULL;
 int* total_bytes_used = 0;
 char* game_state = NULL;
 char *array_of_client_buffers = NULL;
-
+/* Game state pointers  */
+float* window_width=NULL;
+float* window_height=NULL;
+char* team_cnt = NULL;
+char* player_cnt = NULL;
+char* ball_cnt = NULL;
+char* powerup_cnt = NULL;
 /* Gets shared memory */
 void get_shared_memory(){
     /* Packet shared memory  */
@@ -59,15 +133,26 @@ void get_shared_memory(){
       strncpy(block, array_of_client_buffers, MAX_INCOMING_PACKET_SIZE*2*10);
     /* Game state shared memory*/
     /* MAX clients = 10 therefore memory will be requested for five teams */
-    int team_cnt = MAX_CLIENTS/2;
-    int player_cnt = MAX_CLIENTS;
+    int team_count = MAX_CLIENTS/2;
+    int player_count = MAX_CLIENTS;
     /* for now ball count will be 1 */
-    int ball_cnt = 1;
+    int ball_count = 1;
     /* for now powerup count will be 1 */
-    int powerup_cnt = 1;
-    int total_gamestate_size = 5+ 21*team_cnt +1+ player_cnt*18 + 1 + ball_cnt*13 + 1 + powerup_cnt*17;
+    int powerup_count = 1;
+    int total_gamestate_size = 5+ 21*team_count +1+ player_count*18 + 1 + ball_count*13 + 1 + powerup_count*17 + 1 + player_count*21;
      game_state_block = attach_memory_block(FILENAME, total_gamestate_size);
-   
+    team_cnt = (game_state_block + 8);
+    /* For now team cnt = 2*/
+    *team_cnt = team_count;
+     player_cnt = (game_state_block + 9 + 21*(*team_cnt));
+    /*for now player cnt is 4 */
+    *player_cnt = player_count;
+     ball_cnt = (game_state_block + 9 + 21*(*team_cnt) + 1 + 18*(*player_cnt) );
+    *ball_cnt = ball_count;
+     powerup_cnt = (game_state_block + 9 + 21*(*team_cnt) + 1 + 18*(*player_cnt) + 1 + *ball_cnt*13);
+    *powerup_cnt = powerup_count;
+
+
     /*    GAMESTATE STRUKTŪRA
      
             *game_state_block  - window wit=dth
@@ -97,6 +182,9 @@ void get_shared_memory(){
             *(game_state_block + 9 + 21*team_cnt + 1 + 18*player_cnt + 1 + ball_cnt*13 + 1 + powerup_id*17 + 5) - powerup Y
             *(game_state_block + 9 + 21*team_cnt + 1 + 18*player_cnt + 1 + ball_cnt*13 + 1 + powerup_id*17 + 9) - powerup width
             *(game_state_block + 9 + 21*team_cnt + 1 + 18*player_cnt + 1 + ball_cnt*13 + 1 + powerup_id*17 + 13) - powerup height
+            *(game_state_block + 9 + 21*team_cnt + 1 + 18*player_cnt + 1 + ball_cnt*13 + 1 + powerup_cnt*17) - player cnt
+            *(game_state_block + 9 + 21*team_cnt + 1 + 18*player_cnt + 1 + ball_cnt*13 + 1 + powerup_cnt*17 + 1 + player_id*21)  - speletaja id
+            *(game_state_block + 9 + 21*team_cnt + 1 + 18*player_cnt + 1 + ball_cnt*13 + 1 + powerup_cnt*17 + 1 + player_id*21 + 1) - speletaja name
                            
           */
 }
@@ -151,7 +239,7 @@ void process_client(int id,int socket){
                      print_Bytes(&(ARRAY_INDEX(array_of_client_buffers, id)[1]), n);
                      printf("%c\n",ARRAY_INDEX(array_of_client_buffers, id)[0] ); */
                       print_Bytes(&(ARRAY_INDEX(block, id)[1]), n);
-                     printf("%c\n",ARRAY_INDEX(block, id)[0] );
+                     
 
                 }else if(mode == 2)
                    {
@@ -218,7 +306,12 @@ void process_client(int id,int socket){
         }
     }
 
+send_player_input(int id, int client_socket){
+  /* piemers ka sutit package */
+  char* package2 = createPackage2(4, 0);
+  send(client_socket, package2, 15, 0);
 
+}
 /* Starts network which polls new socket connections */
 int start_polling(char* hostname, int port){
     /* Server info */
@@ -306,8 +399,13 @@ int start_polling(char* hostname, int port){
                 }
                 /* Child process calls func process_client()  */
                 else {
+                   int pid = fork();
+                   if(pid == 0){
+                     send_player_input(new_client_id, client_socket);
+                    }else{
                     process_client(new_client_id,client_socket);
                     exit(0);
+                    }
                 }
             }
         }
@@ -321,6 +419,7 @@ int start_polling(char* hostname, int port){
 
 
 int main(int argc, char** argv){
+
     int i;
     /* Assigns default values to server connection info */
     char* server_hostname = DEFAULT_HOSTNAME;
@@ -362,6 +461,14 @@ int main(int argc, char** argv){
     */
     get_shared_memory();
 
+
+  /* Testing printable packages */
+    char* package2 = createPackage2(4, 0);
+       print_Bytes(package2, 15);
+     char* package4 = createPackage4(1);
+     print_Bytes(package4, 99);
+ 
+
     /* ========== RUNS THE SERVER ========== */
 
     printf("\tRunning space-pong server...\n");
@@ -383,14 +490,7 @@ int main(int argc, char** argv){
 /* ------------------------------------------------------------------ */
 
 
-char calculate_checksum(char* buffer, int n){
-  int i;
-  char res=0;
-  for(i = 0; i<n; i++){
-    res ^= buffer[i];
-  }
-  return res;
-}
+
 
 int unescape(char* ch){
   /* printf("Un-escaping!\n"); */
@@ -485,3 +585,122 @@ void update_game_state(){
 
 
 
+
+
+
+
+/* ---------PACKET CREATING---------- */
+char* createPackage2(char status, int package_number){
+    unsigned int number2 = htonl(package_number);
+     char packageNumberString[4];
+     unsigned char checksum = 0;
+     memcpy(packageNumberString, &number2, 4);
+     int pos = 0;
+     /*char pack1[34] = {'-','-', 0,0,0,0, 1, 0,0,0,20, 'n','i','c','k',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 26, '-','-'};   */
+     /* package 1 */
+     char* package =NULL;    
+              package = pack2;
+               int i = 2;
+               int posNum = i+4;
+                 /* Adding package number */
+               for(i = 2; i<posNum; i++){
+                   package[i] = packageNumberString[i-2];
+               }  
+                
+              package[11] = status;
+
+              /* Calculating and adding checksum */
+              checksum = (unsigned char) calculate_checksum(package+2, 10);
+              package[12] = checksum;
+
+     return package;
+}
+char* createPackage3(char* data_segment, int package_number){
+     unsigned int number2 = htonl(package_number);
+     char packageNumberString[4];
+     char packageSizeString[4];
+     char packageIdString;
+     unsigned char checksum = 0;
+     int pack_id = 3;
+     memcpy(packageNumberString, &number2, 4);
+     int pos = 0;
+     int size;
+     /*char pack1[34] = {'-','-', 0,0,0,0, 1, 0,0,0,20, 'n','i','c','k',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, 26, '-','-'};   */
+     /* package 1 */
+     char* package =NULL;    
+              package = pack3;
+               int i = 2;
+               int posNum = i+4;
+                 /* Adding package number */
+               for(i = 2; i<posNum; i++){
+                   package[i] = packageNumberString[i-2];
+               }  
+                /* Adding message to package */
+               i= 13;
+               while(data_segment[i-13] != '\0'){
+                 package[i] = data_segment[i-13];
+                 i++;
+               }
+               /* Adding 0 in the remaining data segment */
+               for(i; i<270; i++){
+                   package[i] = 0;
+               }
+
+              /* Calculating and adding checksum */
+               package[i] = 0;
+              checksum = (unsigned char) calculate_checksum(package+2, 266);
+              package[i] = checksum;
+
+     return package;
+}
+char* createPackage4( int package_number){
+  /*  šobrīd var izveidot packetu tikai ar 4iem playeru vārdiem */
+     unsigned int number2 = htonl(package_number);
+     char packageNumberString[4];
+     unsigned char checksum = 0;
+     memcpy(packageNumberString, &number2, 4);
+     int pos = 0;
+     int size;
+    /* {'-','-', 0,0,0,2, 4, 0,0,0,0,          /* player count     Id  Player name                    
+                                                      1,         0, 'N','a','me','e','1',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                                 1, 'N','a','me','e','2',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                                 2, 'N','a','me','e','1',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                                 3, 'N','a','me','e','2',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                                                                                              /*  CS?   DIV       
+                                                                                            1, '-','-'};*/
+     char* package =NULL;
+              package = pack4;
+               int i = 2;
+               int posNum = i+4;
+                 /* Adding package number */
+               for(i = 2; i<posNum; i++){
+                   package[i] = packageNumberString[i-2];
+               }  
+
+             if(*player_cnt > 4){
+                 package[11] = 4;
+              }else{
+                 package[11] = *player_cnt;
+              }
+              /* Vēl jāpievieno spēlētāju vārdi un id 
+              i = 
+              for()
+               
+                /* Adding message to package 
+               i= 13;
+               while(data_segment[i-13] != '\0'){
+                 package[i] = data_segment[i-13];
+                 i++;
+               }
+               /* Adding 0 in the remaining data segment 
+               for(i; i<31; i++){
+                   package[i] = 0;
+               }
+
+              /* Calculating and adding checksum */
+              checksum = (unsigned char) calculate_checksum(package+2, 93);
+              package[97] = checksum;
+
+ 
+     return package;
+}
