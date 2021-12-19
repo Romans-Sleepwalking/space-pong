@@ -16,6 +16,7 @@
 #define DEFAULT_PORT 6900
 #define MAX_INCOMING_PACKET_SIZE 300
 #define BIGGEST_BUFFER 10000
+#define DEFAULT_PORT 6969
 /* GUI window parameters */
 #define WINDOW_WIDTH 1600
 #define WINDOW_HEIGHT 800
@@ -62,39 +63,12 @@ double r_paddle_cx = 74.5;
 double r_paddle_cy = 25.0;
 double l_paddle_cx = 4.5;
 double l_paddle_cy = 15.0;
-char printable_char(char c);
 
 char* createPackage1(int id, char* data_segment, int package_number);
 char* createPackage3(char* data_segment, int package_number);
 char* createPackage6(char client_id, int package_number);
 char* createPackage8(char key_press, int package_number);
 
-int unescape(char* ch){
-  /* printf("Un-escaping!\n"); */
-  if(ch[0] == '-') ch[0] = '-';
-  else if(ch[0] == '*') ch[0] = '?';
-  else return 1;
-  return 0;
-}
-
-
-int packet_is_ok(char* buffer, int n, int last_id){
-  int new_id = 0;
-  int length = 0;
-  unsigned char goal_checksum = (unsigned char) buffer[n-1];
-  unsigned char current_checksum = 0;
-  /* ID either 0 or bigger than previous? */
-  new_id = get_4_bit_integer(buffer);
-  if(new_id>0 && new_id<=last_id){
-    printf("Received packet out of order! Last ID = %d, received %d\n", last_id, new_id);
-    return 0;
-  }
-}
-
-
-char calculate_checksum(char* buffer, int n);
-int get_4_bit_integer(void * addr);
-void print_Bytes(void* packet, int count);
 /* Initializes grid and memory */
 void direct_copy_data_as_bytes(void* packet, void* data, int size){
   int i;
@@ -180,8 +154,8 @@ int main(int argc, char** argv){
     char* package6 = createPackage6(1, 2);
     char* package8 = createPackage8(4, 3);
            /*  printf("Package1: %s\n", package); */
-               print_Bytes(package6, 15);
-                print_Bytes(package8, 15);
+               print_packet_bytes(package6, 15);
+                print_packet_bytes(package8, 15);
     int i;
     /* Assigns default values to client connection info */
     char* client_address = DEFAULT_HOSTNAME;
@@ -305,93 +279,18 @@ int main(int argc, char** argv){
     else {
         /* Infinite loop puts server messages if received */
         /* te sakas kur varetu but errori */
-  int proccess;
-  char this_packet[MAX_INCOMING_PACKET_SIZE]="ABC";
-  char tmp[BIGGEST_BUFFER]="ABC";
-  int n = 0;
-  int i = 0;
-  char in[1];
-  char prev_was_divider = 0;
-  char in_packet = 0;
-  char escape_mode = 0;
-  int last_packet_id = 0;
-  int mode = 0; 
       /*  while(read(client_socket,in,1)){ */
       while(1){
      if (recv(client_socket, server_reply , 6000 , 0) > 0){
-         int i = 0;
-         for(i; i< 6000; i++){
-          in[0] = server_reply[i];
-         /*   read(client_socket,in,1); */
-        if(in[0] == '-' && !escape_mode){
-      /* packet ends */
-      if(n<3) {
-        /* Discard silently */
-      } else {
-        if(packet_is_ok(tmp, n, last_packet_id))
-        {
-              print_Bytes(tmp, n);
-        }
-     }  
-           n = 0;
-          in_packet = 0;
-      if(prev_was_divider){
-        in_packet = 1;
-      } else {
-        prev_was_divider = 1;
-      }
-    } else {
-      if(in_packet){
-        prev_was_divider = 0;
-        /* un-escape if needed */
-        if(in[0] == '?'){
-          escape_mode = 1;
-          continue;
-        }
-        if(escape_mode){          
-          escape_mode = 0;
-          if(unescape(in) == 1){
-            n = 0;
-            in_packet = 0;
-            continue;
-          }         
-        }
+        
+              puts(server_reply); 
 
-        tmp[n] = in[0];
-        n++;
-      }
-    }
-              /*  puts(server_reply); */
-                   }
             }
         }
     }
 }
 
 
-void print_Bytes(void* packet, int count){
-    int i;
-    unsigned char* p = (unsigned char*) packet;
-    if(count>999){
-        printf("Cannot print more than 999 bytes! You asked for %d\n",count);
-        return;
-    }
-    printf("Printing %d bytes...\n",count);
-    printf("[NPK] [C] [HEX] [DEC] [ BINARY ]\n");
-    printf("================================\n");
-    for(i=0;i<count;i++){
-        printf(" %3d | %c | %02X | %3d | %c%c%c%c%c%c%c%c\n",i,printable_char(p[i]),p[i],p[i],
-        p[i] & 0x80 ? '1':'0',
-        p[i] & 0x40 ? '1':'0',
-        p[i] & 0x20 ? '1':'0',
-        p[i] & 0x10 ? '1':'0',
-        p[i] & 0x08 ? '1':'0',
-        p[i] & 0x04 ? '1':'0',
-        p[i] & 0x02 ? '1':'0',
-        p[i] & 0x01 ? '1':'0'
-        );
-    }
-}
 char* createPackage1(int pack_id, char* data_segment, int package_number){
      unsigned int number2 = htonl(package_number);
      char packageNumberString[4];
@@ -520,20 +419,4 @@ char* createPackage8(char key_press, int package_number){
               package[12] = checksum;
 
      return package;
-}
-int get_4_bit_integer(void * addr){
-  return ntohl(*((int*)addr));
-}
-
-char calculate_checksum(char* buffer, int n){
-  int i;
-  char res=0;
-  for(i = 0; i<n; i++){
-    res ^= buffer[i];
-  }
-  return res;
-}
-char printable_char(char c){
-    if(isprint(c)) return c;
-    return '#';
 }

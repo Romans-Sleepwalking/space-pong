@@ -14,7 +14,7 @@ build_server: build_lib
 run_server:
 	@echo ===
 	@echo ====== TEST SERVER ======
-	./server.o server -h=localhost -p=6900
+	./server.o server -h=localhost -p=6969
 	@echo ====== END TEST SERVER ======
 	@echo ===
 clean_server: clean_lib
@@ -26,7 +26,7 @@ build_client: build_lib
 run_client:
 	@echo ===
 	@echo ====== TEST CLIENT ======
-	./client.o client -a=localhost -p=6900
+	./client.o client -a=localhost -p=6969
 	@echo ====== END TEST CLIENT ======
 	@echo ===
 clean_client: clean_lib
