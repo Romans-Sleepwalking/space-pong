@@ -533,30 +533,6 @@ int main(int argc, char** argv){
 
 
 
-int packet_is_ok(char* buffer, int n, int last_id){
-  int new_id = 0;
-  int length = 0;
-  unsigned char goal_checksum = (unsigned char) buffer[n-1];
-  unsigned char current_checksum = 0;
-  /* ID either 0 or bigger than previous? */
-  new_id = get_4_bit_integer(buffer);
-  if(new_id>0 && new_id<=last_id){
-    printf("Received packet out of order! Last ID = %d, received %d\n", last_id, new_id);
-    return 0;
-  }
-  /* Data length ok? */
-  length = get_4_bit_integer(buffer+5);
-
-
-  /* checksum ok? */
-  current_checksum = (unsigned char) calculate_checksum(buffer, n-1);
-  if(current_checksum != goal_checksum){
-    printf("Packet chekchsum failed! received = %d, calculated %d\n", goal_checksum, current_checksum);
-    return 0;
-  }
-  return 1;
-}
-
 int get_writeable_packet_in_buffer(int id){
 char available = ARRAY_INDEX(block, id)[0];
 char available2 = ARRAY_INDEX(block, id)[MAX_INCOMING_PACKET_SIZE];
